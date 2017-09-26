@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# Exit codes: 
+# 1: failure to supply correct information when calling the script
+# 2: user did not want to continue processing the script (e.g., entering "n")
+# 3: command failed to run
+
+GOOGLE_AUTH=$(which google-authenticator)
+NFC_ADD=$(which pam-nfc-add)
+
+
+# Make sure we're using only one username
+if [ $# != 1 ]; then
+  printf "Please specify only a single username to create for the laser\n"
+  exit 1
+fi
+
+USER=$1
+
+
+# Verify that we're about to do this
+printf "About to create user %s, " "$USER"
+read -n 1 -r -p "press space to continue " KEY
+if [ "$KEY" != "" ]; then
+  exit 2
+fi
+
+
+sudo adduser --conf /etc/laseruser.conf $USER || exit 3
+
+# Let's do the security stuff!
+printf "User %s has been created by %s, " "$USER" "$(whoami)"
+read -n 1 -r -p "press space to continue to security" KEY
+if [ "$KEY" != "" ]; then
+  exit 2
+fi
+
+printf "\nMake sure that the user has their phone/laptop out and ready to receive their TOTP key.\n"
+read -n 1 -r -p "Press space to continue." KEY
+if [ "$KEY" != "" ]; then
+  exit 2
+fi
+
+printf "\nRunning google_authenticator as %s\n" "$USER"
+sudo su $USER -c "$GOOGLE_AUTH -t -D -u -w 17" || exit 3
+
+
+printf "\n\n\nTOTP should be setup now.\nNow give %s an NFC tag and have it against the reader.\n" "$USER"
+read -n 1 -r -p "Press space ready. " KEY
+if [ "$KEY" != "c" ]; then
+  exit 2
+fi
+
+sudo $NFC_ADD $USER || exit 3
+
+printf "\n%s now has both NFC and TOTP setup.\n" "$USER"
+
+printf "Is %s an admin account? " "$USER"
+read -n 1 -r -p "Press y/n " KEY
+if [ "$KEY" = "y" ]; then
+  sudo adduser $USER adm || exit 3
+else
+  printf "\nUser not admin account\n"
+fi
+
+printf "\n\nDoes %s require SSH access? (Recommended for admin accounts)\n" "$USER"
+printf "NOTE: As password login is disabled, the user will need to find another\nway to copy their public key into ~/.ssh/authorized_keys\n"
+read -n 1 -r -p "Press y/n " KEY
+if [ "$KEY" = "y" ]; then
+  sudo adduser $USER ssh || exit 3
+else
+  printf "\nUser not given SSH access\n"
+fi
+
+
+printf "\n\n%s is now created an has access to the laser!\n" "$USER"
