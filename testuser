@@ -1,8 +1,7 @@
 #!/bin/bash -e
 
-ANSWER=""
-
 NFC_LIST=$(which nfc-list)
+MKPASSWD=$(which mkpasswd)
 
 printf "The output of the next command should resemble something like the following:\n"
 
@@ -27,4 +26,20 @@ while [[ "$ISTAG" != "y" ]]; do
   read -n 1 -r -p "[y/N]? " ISTAG
 done
 
-printf "\nLet's continue then!\n"
+printf "\nLet's continue then!\n%s\n\n" "$TAG"
+
+TARGET_NFC=$(echo $TAG | grep -Eo '\(NFCID1\):(\s(\w|\d){2}){4}' | cut -d":" -f2 | sed -e 's/\s//g')
+
+printf "Here's the ID that'll be encrypted: %s\n" "$TARGET_NFC"
+
+ENC_NFC=$(mkpasswd -S RC $TARGET_NFC)
+
+printf "The encrypted DES hash: %s\n" "$ENC_NFC"
+
+
+TEST_HASH="RCVYRpjhwjgOU"
+if [[ $ENC_NFC = $TEST_HASH ]]; then
+  printf "It matches! %s == %s\n" "$ENC_NFC" "$TEST_HASH"
+else
+  printf "No match: %s != %s\n" "$ENC_NFC" "$TEST_HASH"
+fi
