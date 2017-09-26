@@ -26,7 +26,7 @@ if [ "$KEY" != "" ]; then
 fi
 
 
-sudo adduser --conf /etc/laseruser.conf $USER || exit 3
+adduser --conf /etc/laseruser.conf $USER || exit 3
 
 # Let's do the security stuff!
 printf "User %s has been created by %s, " "$USER" "$(whoami)"
@@ -42,7 +42,7 @@ if [ "$KEY" != "" ]; then
 fi
 
 printf "\nRunning google_authenticator as %s\n" "$USER"
-sudo su $USER -c "$GOOGLE_AUTH -t -D -u -w 17" || exit 3
+su $USER -c "$GOOGLE_AUTH -t -D -u -w 17" || exit 3
 
 
 printf "\n\n\nTOTP should be setup now.\nNow give %s an NFC tag and have it against the reader.\n" "$USER"
@@ -51,14 +51,14 @@ if [ "$KEY" != "c" ]; then
   exit 2
 fi
 
-sudo $NFC_ADD $USER || exit 3
+$NFC_ADD $USER || exit 3
 
 printf "\n%s now has both NFC and TOTP setup.\n" "$USER"
 
 printf "Is %s an admin account? " "$USER"
 read -n 1 -r -p "Press y/n " KEY
 if [ "$KEY" = "y" ]; then
-  sudo adduser $USER adm || exit 3
+  adduser $USER adm || exit 3
 else
   printf "\nUser not admin account\n"
 fi
@@ -67,7 +67,7 @@ printf "\n\nDoes %s require SSH access? (Recommended for admin accounts)\n" "$US
 printf "NOTE: As password login is disabled, the user will need to find another\nway to copy their public key into ~/.ssh/authorized_keys\n"
 read -n 1 -r -p "Press y/n " KEY
 if [ "$KEY" = "y" ]; then
-  sudo adduser $USER ssh || exit 3
+  adduser $USER ssh || exit 3
 else
   printf "\nUser not given SSH access\n"
 fi
