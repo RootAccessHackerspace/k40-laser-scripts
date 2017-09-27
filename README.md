@@ -26,6 +26,7 @@ Just two temperature sensors are used: one goes into the water bucket to make su
 2. The user choses a username and a password on the RPi.
 3. The user is given an NFC tag and its ID is associated with their account.
    (This may change in the future to the user receiving an NFC tag when their become members of RAH.)
+   Currently, [pam-nfc](https://github.com/nfc-tools/pam_nfc) is what we are using for NFC auth.
 4. [Google Authenticator](https://github.com/google/google-authenticator-libpam) generates a TOTP for the user.
 
 In order to login, the user must have, in addition to their username and password, their NFC tag and TOTP.
