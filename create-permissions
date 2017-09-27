@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# for GPIO
+chown :gpio /usr/bin/gpio
+chmod u+s,o-x /usr/bin/gpio
