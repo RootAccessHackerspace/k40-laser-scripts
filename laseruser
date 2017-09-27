@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 # Exit codes: 
 # 1: failure to supply correct information when calling the script
@@ -7,6 +7,7 @@
 
 GOOGLE_AUTH=$(which google-authenticator)
 NFC_ADD=$(which pam-nfc-add)
+NFC_LIST=$(which nfc-list)
 
 
 # Make sure we're using only one username
@@ -26,7 +27,7 @@ if [ "$KEY" != "" ]; then
 fi
 
 
-sudo adduser --conf /etc/laseruser.conf $USER || exit 3
+adduser --conf /etc/laseruser.conf $USER || exit 3
 
 # Let's do the security stuff!
 printf "User %s has been created by %s, " "$USER" "$(whoami)"
@@ -42,23 +43,49 @@ if [ "$KEY" != "" ]; then
 fi
 
 printf "\nRunning google_authenticator as %s\n" "$USER"
-sudo su $USER -c "$GOOGLE_AUTH -t -D -u -w 17" || exit 3
+su $USER -c "$GOOGLE_AUTH -t -D -u -w 17" || exit 3
 
 
 printf "\n\n\nTOTP should be setup now.\nNow give %s an NFC tag and have it against the reader.\n" "$USER"
 read -n 1 -r -p "Press space ready. " KEY
-if [ "$KEY" != "c" ]; then
+if [ "$KEY" != "" ]; then
   exit 2
 fi
 
-sudo $NFC_ADD $USER || exit 3
 
-printf "\n%s now has both NFC and TOTP setup.\n" "$USER"
+printf "The output of the next command should resemble something like the following:\n"
+
+printf "+--------------------------------------------------\n"
+printf "nfc-list uses libnfc 1.7.1\nNFC device: pn532_spi:/dev/spidev0.0 opened\n1 ISO14443A passive target(s) found:\nISO/IEC 14443A (1
+06 kbps) target:\n    ATQA (SENS_RES): 00  04  \n       UID (NFCID1): \e[32ma2  53  c3  59\e[0m  \n      SAK (SEL_RES): 08  \n"
+printf "+--------------------------------------------------\n"
+
+printf "Where the green text is the ID of the NFC tag\n"
+printf "(your text will not be green, but will be in the same location)\n"
+
+sleep 1
+
+printf "Scanning for an NFC tag now...\n"
+
+ISTAG=""
+while [[ "$ISTAG" != "y" ]]; do
+  TAG=""
+  while [[ "$TAG" != *"NFCID1"* ]]; do
+    TAG=$( $NFC_LIST -t 1 )
+  done
+  printf "\n\nIs this your tag?\n\n%s\n\n" "$TAG"
+  read -n 1 -r -p "[y/N]? " ISTAG
+done
+
+$NFC_ADD $USER || printf "Failed to add NFC. You need to do it manually now.\n" 
+printf "\n\n %s should have an NFC card associated with them now\n\n" "$USER"
+
 
 printf "Is %s an admin account? " "$USER"
 read -n 1 -r -p "Press y/n " KEY
 if [ "$KEY" = "y" ]; then
-  sudo adduser $USER adm || exit 3
+  printf "\n"
+  adduser $USER adm || exit 3
 else
   printf "\nUser not admin account\n"
 fi
@@ -67,10 +94,11 @@ printf "\n\nDoes %s require SSH access? (Recommended for admin accounts)\n" "$US
 printf "NOTE: As password login is disabled, the user will need to find another\nway to copy their public key into ~/.ssh/authorized_keys\n"
 read -n 1 -r -p "Press y/n " KEY
 if [ "$KEY" = "y" ]; then
-  sudo adduser $USER ssh || exit 3
+  printf "\n"
+  adduser $USER ssh || exit 3
 else
   printf "\nUser not given SSH access\n"
 fi
 
 
-printf "\n\n%s is now created an has access to the laser!\n" "$USER"
+printf "\n\n%s is now created and has access to the laser!\n" "$USER"
