@@ -1,0 +1,4 @@
+#!/bin/bash -e
+
+# laseruser.conf
+ln -sv /etc/laseruser.conf $(pwd)/laseruser.conf
