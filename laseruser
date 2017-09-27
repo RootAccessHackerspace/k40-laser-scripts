@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 # Exit codes: 
 # 1: failure to supply correct information when calling the script
@@ -7,6 +7,7 @@
 
 GOOGLE_AUTH=$(which google-authenticator)
 NFC_ADD=$(which pam-nfc-add)
+NFC_LIST=$(which nfc-list)
 
 
 # Make sure we're using only one username
@@ -51,9 +52,34 @@ if [ "$KEY" != "c" ]; then
   exit 2
 fi
 
-$NFC_ADD $USER || exit 3
 
-printf "\n%s now has both NFC and TOTP setup.\n" "$USER"
+printf "The output of the next command should resemble something like the following:\n"
+
+printf "+--------------------------------------------------\n"
+printf "nfc-list uses libnfc 1.7.1\nNFC device: pn532_spi:/dev/spidev0.0 opened\n1 ISO14443A passive target(s) found:\nISO/IEC 14443A (1
+06 kbps) target:\n    ATQA (SENS_RES): 00  04  \n       UID (NFCID1): \e[32ma2  53  c3  59\e[0m  \n      SAK (SEL_RES): 08  \n"
+printf "+--------------------------------------------------\n"
+
+printf "Where the green text is the ID of the NFC tag\n"
+printf "(your text will not be green, but will be in the same location)\n"
+
+sleep 1
+
+printf "Scanning for an NFC tag now...\n"
+
+ISTAG=""
+while [[ "$ISTAG" != "y" ]]; do
+  TAG=""
+  while [[ "$TAG" != *"NFCID1"* ]]; do
+    TAG=$( $NFC_LIST -t 1 )
+  done
+  printf "\n\nIs this your tag?\n\n%s\n\n" "$TAG"
+  read -n 1 -r -p "[y/N]? " ISTAG
+done
+
+$NFC_ADD $USER || printf "Failed to add NFC. You need to do it manually now.\n" 
+
+
 
 printf "Is %s an admin account? " "$USER"
 read -n 1 -r -p "Press y/n " KEY
