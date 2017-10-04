@@ -32,3 +32,21 @@ PSU = 21
 GRBL = 27
 
 ####---- Generic Functions ----####
+def initialize_nfc_reader(CS=CS, MOSI=MOSI, MISO=MISO, SCLK=SCLK):
+    """Take in pin assignments, return class instance and firmware version"""
+
+    reader = PN532.PN532(cs=CS, mosi=MOSI, miso=MISO, sclk=SCLK)
+    reader.begin()
+    
+    # Make sure reader is functioning
+    ic, version, revision, support = reader.get_firmware_version()
+    if (version is None) or (revision is None):
+        print("Something went wrong")
+
+    reader.SAM_configuration()
+
+    return reader, "{}.{}".format(version, revision)
+
+
+
+#print(initialize_nfc_reader())
