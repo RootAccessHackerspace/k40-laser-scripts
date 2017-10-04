@@ -13,6 +13,7 @@ access to the laser, then let the user actually do so.
 from __future__ import print_function
 
 import binascii
+import time
 
 import Adafruit_GPIO as GPIO
 import Adafruit_PN532 as PN532
@@ -36,17 +37,32 @@ def initialize_nfc_reader(CS=CS, MOSI=MOSI, MISO=MISO, SCLK=SCLK):
     """Take in pin assignments, return class instance and firmware version"""
 
     reader = PN532.PN532(cs=CS, mosi=MOSI, miso=MISO, sclk=SCLK)
-    reader.begin()
-    
+    success = False
+    while not success:
+        try:
+            reader.begin()
+            success = True
+        except RuntimeError:
+            print("Failed to detect reader. Check pin assignments and connections.")
+            time.sleep(2)
+
     # Make sure reader is functioning
     ic, version, revision, support = reader.get_firmware_version()
     if (version is None) or (revision is None):
         print("Something went wrong")
+    
+    # Configure reader to accept Mifare cards (and all cards, really)
+    configured = False
+    while not configured:
+        try:
+            reader.SAM_configuration()
+            configured = True
+        except RuntimeError:
+            print("Something went wrong during configuration.")
+            time.sleep(2)
 
-    reader.SAM_configuration()
-
-    return reader, "{}.{}".format(version, revision)
+    return reader, "{}.{}.{}".format(version, revision, support)
 
 
 
-#print(initialize_nfc_reader())
+print(initialize_nfc_reader())
