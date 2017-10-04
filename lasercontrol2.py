@@ -63,6 +63,20 @@ def initialize_nfc_reader(CS=CS, MOSI=MOSI, MISO=MISO, SCLK=SCLK):
 
     return reader, "{}.{}.{}".format(version, revision, support)
 
+def get_uid_block(reader):
+    """Takes a reader object and returns the UID of a tag, stopping script until UID is returned"""
+    uid = None
+    while uid is None:
+        uid = reader.read_passive_target()
+        time.sleep(0.5) # Prevent script from taking too much CPU time
+    return uid
 
+def get_uid_noblock(reader):
+    """Takes a reader object and returns the UID of a tag, even if it's None"""
+    return reader.read_passive_target()
 
-print(initialize_nfc_reader())
+####---- Test print() ----####
+reader, version = initialize_nfc_reader()
+print("{}\n{}".format(reader, version))
+
+print(get_uid_block(reader))
