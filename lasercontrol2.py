@@ -75,8 +75,27 @@ def get_uid_noblock(reader):
     """Takes a reader object and returns the UID of a tag, even if it's None"""
     return reader.read_passive_target()
 
+def _dummy_verify_uid(uid):
+    """Takes a UID, verifies that it matches a dummy value, and returns True/False
+
+    This is just a way of being able to check the other functions without
+    having to implement the API calls yet (esp. since the API doesn't even
+    exist yet)"""
+    if uid is not None:
+        return True
+    else:
+        return False
+
+def verify_uid(uid):
+    """Takes a UID, returns True/False depending on user permission"""
+    
+    return _dummy_verify_uid(uid) # No API to use yet for users
+
 ####---- Test print() ----####
 reader, version = initialize_nfc_reader()
 print("{}\n{}".format(reader, version))
 
-print(get_uid_block(reader))
+print(get_uid_noblock(reader))
+
+for uid in [None, True, False, 1234567, "user id str", binascii.unhexlify("deadbeef")]:
+    print("{}: {}".format(str(uid), verify_uid(uid)))
