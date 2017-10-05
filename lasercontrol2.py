@@ -22,18 +22,12 @@ import Adafruit_PN532 as PN532
 ####---- Variables ----####
 # BCM pins for various functions
 ## SPI
-CS = 8
-MOSI = 10
-MISO = 9
-SCLK = 11
-## Relays
-LASER = 20
-PSU = 21
-## GRBL
-GRBL = 27
+spi = dict(cs=8, mosi=10, miso=9, sclk=11)
+## Relays and other outputs
+out_pins = dict(laser=20, psu=21, grbl=27)
 
 ####---- Generic Functions ----####
-def initialize_nfc_reader(CS=CS, MOSI=MOSI, MISO=MISO, SCLK=SCLK):
+def initialize_nfc_reader(CS=spi['cs'], MOSI=spi['mosi'], MISO=spi['miso'], SCLK=spi['sclk']):
     """Take in pin assignments, return class instance and firmware version"""
 
     reader = PN532.PN532(cs=CS, mosi=MOSI, miso=MISO, sclk=SCLK)
@@ -91,11 +85,23 @@ def verify_uid(uid):
     
     return _dummy_verify_uid(uid) # No API to use yet for users
 
+def gpio_setup():
+    """Set up GPIO for use, returns Adafruit_GPIO class instance."""
+    board = GPIO.get_platform_gpio()
+    for item,pin in out_pins.iteritems():
+        print("Setting pin {} to OUT".format(pin))
+        try:
+            board.setup(pin,GPIO.OUT)
+        except:
+            print("Something went wrong with setting up '{}' ({})".format(item,pin))
+
 ####---- Test print() ----####
-reader, version = initialize_nfc_reader()
-print("{}\n{}".format(reader, version))
+#reader, version = initialize_nfc_reader()
+#print("{}\n{}".format(reader, version))
 
-print(get_uid_noblock(reader))
+#print(get_uid_noblock(reader))
 
-for uid in [None, True, False, 1234567, "user id str", binascii.unhexlify("deadbeef")]:
-    print("{}: {}".format(str(uid), verify_uid(uid)))
+#for uid in [None, True, False, 1234567, "user id str", binascii.unhexlify("deadbeef")]:
+#    print("{}: {}".format(str(uid), verify_uid(uid)))
+
+gpio_setup()
