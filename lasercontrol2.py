@@ -25,6 +25,8 @@ import Adafruit_PN532 as PN532
 spi = dict(cs=8, mosi=10, miso=9, sclk=11)
 ## Relays and other outputs
 out_pins = dict(laser=20, psu=21, grbl=27)
+## Sensors and other inputs
+in_pins = dict() # None currently
 
 ####---- Generic Functions ----####
 def initialize_nfc_reader(CS=spi['cs'], MOSI=spi['mosi'], MISO=spi['miso'], SCLK=spi['sclk']):
@@ -86,7 +88,10 @@ def verify_uid(uid):
     return _dummy_verify_uid(uid) # No API to use yet for users
 
 def gpio_setup():
-    """Set up GPIO for use, returns Adafruit_GPIO class instance."""
+    """Set up GPIO for use, returns Adafruit_GPIO class instance.
+    
+    Not only gets the GPIO for the board, but also sets the appropriate pins
+    for output and input."""
     board = GPIO.get_platform_gpio()
     for item,pin in out_pins.iteritems():
         print("Setting pin {} to OUT".format(pin))
