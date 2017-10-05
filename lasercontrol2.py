@@ -94,6 +94,7 @@ def gpio_setup():
             board.setup(pin,GPIO.OUT)
         except:
             print("Something went wrong with setting up '{}' ({})".format(item,pin))
+    return board
 
 ####---- Test print() ----####
 #reader, version = initialize_nfc_reader()
@@ -104,4 +105,5 @@ def gpio_setup():
 #for uid in [None, True, False, 1234567, "user id str", binascii.unhexlify("deadbeef")]:
 #    print("{}: {}".format(str(uid), verify_uid(uid)))
 
-gpio_setup()
+board = gpio_setup()
+print(board)
