@@ -60,7 +60,7 @@ def initialize_nfc_reader(CS=spi['cs'], MOSI=spi['mosi'], MISO=spi['miso'], SCLK
     return reader, "{}.{}.{}".format(version, revision, support)
 
 def get_uid_noblock(reader):
-    """Takes a reader object and returns the UID of a tag, even if it's None"""
+    """Takes a reader object and returns the hex UID of a tag, even if it's None"""
     uid_binary = reader.read_passive_target()
     if uid_binary is None:
         uid_ascii = uid_binary
