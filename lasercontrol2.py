@@ -101,6 +101,17 @@ def gpio_setup():
             print("Something went wrong with setting up '{}' ({})".format(item,pin))
     return board
 
+def disable_relay(board, pin, disabled=True):
+    """Take GPIO instance and OUT pin, disable (by default) relay. Returns pin state.
+
+    disabled=False will enable the relay."""
+    if disabled:
+        board.output(pin,GPIO.HIGH)
+    else:
+        board.output(pin,GPIO.LOW)
+    return board.input(pin)
+
+
 ####---- Test print() ----####
 #reader, version = initialize_nfc_reader()
 #print("{}\n{}".format(reader, version))
@@ -112,3 +123,6 @@ def gpio_setup():
 
 board = gpio_setup()
 print(board)
+
+print(disable_relay(board, out_pins['laser'], False))
+print(disable_relay(board, out_pins['laser'], True))
