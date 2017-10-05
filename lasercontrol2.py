@@ -14,6 +14,7 @@ from __future__ import print_function
 
 import binascii
 import time
+import curses
 
 import Adafruit_GPIO as GPIO
 import Adafruit_PN532 as PN532
@@ -116,6 +117,18 @@ def disable_relay(board, pin, disabled=True):
         board.output(pin,GPIO.LOW)
     return board.input(pin)
 
+####---- Text functions ----####
+def text_horizontal_border(stdscr, line):
+    stdscr.addstr(line, 0, "+------------------------------------------------------------------------------+")
+
+def text_frame(stdscr, message_list):
+    """Takes in list of message lines and add them to the curses window.
+
+    Each item of the list should be an individual line no more than 76 chars.
+    Each item will be printed on its own line."""
+    for line,message in enumerate(message_list):
+        stdscr.addstr(line + 1, 0, "| {}".format(message))
+        stdscr.addstr(line + 1, 78, " |")
 
 ####---- Test print() ----####
 #reader, version = initialize_nfc_reader()
@@ -131,3 +144,16 @@ def disable_relay(board, pin, disabled=True):
 
 #print(disable_relay(board, out_pins['laser'], False))
 #print(disable_relay(board, out_pins['laser'], True))
+
+def main(stdscr):
+    stdscr.clear()
+    introduction = ["This is a test",
+                    "of the emergency",
+                    "broadcast system."]
+    text_horizontal_border(stdscr, 0)
+    text_frame(stdscr, introduction)
+    text_horizontal_border(stdscr, len(introduction)+1)
+    stdscr.refresh()
+    stdscr.getkey()
+
+curses.wrapper(main)
