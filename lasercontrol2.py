@@ -59,17 +59,22 @@ def initialize_nfc_reader(CS=spi['cs'], MOSI=spi['mosi'], MISO=spi['miso'], SCLK
 
     return reader, "{}.{}.{}".format(version, revision, support)
 
+def get_uid_noblock(reader):
+    """Takes a reader object and returns the UID of a tag, even if it's None"""
+    uid_binary = reader.read_passive_target()
+    if uid_binary is None:
+        uid_ascii = uid_binary
+    else:
+        uid_ascii = binascii.hexlify(uid_binary)
+    return uid_ascii
+
 def get_uid_block(reader):
     """Takes a reader object and returns the UID of a tag, stopping script until UID is returned"""
     uid = None
     while uid is None:
-        uid = reader.read_passive_target()
+        uid = get_uid_noblock(reader)
         time.sleep(0.5) # Prevent script from taking too much CPU time
     return uid
-
-def get_uid_noblock(reader):
-    """Takes a reader object and returns the UID of a tag, even if it's None"""
-    return reader.read_passive_target()
 
 def _dummy_verify_uid(uid):
     """Takes a UID, verifies that it matches a dummy value, and returns True/False
@@ -113,10 +118,10 @@ def disable_relay(board, pin, disabled=True):
 
 
 ####---- Test print() ----####
-#reader, version = initialize_nfc_reader()
+reader, version = initialize_nfc_reader()
 #print("{}\n{}".format(reader, version))
 
-#print(get_uid_noblock(reader))
+print(get_uid_block(reader))
 
 #for uid in [None, True, False, 1234567, "user id str", binascii.unhexlify("deadbeef")]:
 #    print("{}: {}".format(str(uid), verify_uid(uid)))
