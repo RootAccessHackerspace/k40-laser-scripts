@@ -118,16 +118,16 @@ def disable_relay(board, pin, disabled=True):
 
 
 ####---- Test print() ----####
-reader, version = initialize_nfc_reader()
+#reader, version = initialize_nfc_reader()
 #print("{}\n{}".format(reader, version))
 
-print(get_uid_block(reader))
+#print(get_uid_block(reader))
 
 #for uid in [None, True, False, 1234567, "user id str", binascii.unhexlify("deadbeef")]:
 #    print("{}: {}".format(str(uid), verify_uid(uid)))
 
-board = gpio_setup()
-print(board)
+#board = gpio_setup()
+#print(board)
 
-print(disable_relay(board, out_pins['laser'], False))
-print(disable_relay(board, out_pins['laser'], True))
+#print(disable_relay(board, out_pins['laser'], False))
+#print(disable_relay(board, out_pins['laser'], True))
