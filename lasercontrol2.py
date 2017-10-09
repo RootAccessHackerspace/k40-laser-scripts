@@ -118,6 +118,20 @@ def disable_relay(board, pin, disabled=True):
     return board.input(pin)
 
 ####---- Text functions ----####
+def verify_text_length(message_list, length=76):
+    """Takes in a list of messages, returns True if all items are appropriate
+    length, first item number and length otherwise"""
+    failures = []
+    for position,message in enumerate(message_list):
+        message_length = len(message)
+        if message_length > length:
+            failures.append((position, message_length))
+
+    if len(failures) > 0:
+        return failures
+    else:
+        return True
+
 def text_horizontal_border(stdscr, line):
     stdscr.addstr(line, 0, "+------------------------------------------------------------------------------+")
 
