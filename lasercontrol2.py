@@ -12,6 +12,7 @@ access to the laser, then let the user actually do so.
 ####---- Imports ----####
 from __future__ import print_function
 
+import sys,os
 import binascii
 import time
 import curses
@@ -168,7 +169,7 @@ def text_frame(message, stdscr, offset=0):
 #print(disable_relay(board, out_pins['laser'], True))
 
 def main(stdscr):
-    intro = "This program will allow you to change the state of the laser and PSU, and reset the GRBL board (if you really need to).\n\nSearching for NFC tag...\n\n"
+    intro = "This program will allow you to change the state of the laser and PSU, and reset the GRBL board (if you really need to).\n\nSearching for NFC tag...\n\n\n"
 
     stdscr.clear()
     stdscr.resize(20,80)
@@ -181,12 +182,22 @@ def main(stdscr):
     user_id = get_uid_block(reader)
     
     y, x = stdscr.getyx()
-    text_frame("Your NFC UID is 0x{}".format(user_id), stdscr, offset=y)
+    text_frame("Your NFC UID is 0x{}".format(user_id), stdscr, offset=y) 
     stdscr.refresh()
 
     stdscr.getkey()
 
-curses.wrapper(main)
+
+if __name__ == '__main__':
+    try:
+        print("Starting up curses wrapper...")
+        curses.wrapper(main)
+    except KeyboardInterrupt:
+        print("Shutting down...")
+        try:
+            sys.exit(0)
+        except SystemExit:
+            os._exit(0)
 
 
 
