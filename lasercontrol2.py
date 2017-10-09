@@ -15,6 +15,7 @@ from __future__ import print_function
 import binascii
 import time
 import curses
+import textwrap
 
 import Adafruit_GPIO as GPIO
 import Adafruit_PN532 as PN532
@@ -136,16 +137,16 @@ def text_horizontal_border(stdscr, line):
     stdscr.hline(line, 0, "+", 80)
     stdscr.hline(line, 1, "-", 78) # Cover middle with '-'
 
-def text_frame(stdscr, message_list):
+def text_frame(stdscr, message_list, offset=0):
     """Takes in list of message lines and add them to the curses window.
 
     Each item of the list should be an individual line no more than 76 chars.
     Each item will be printed on its own line."""
     for line,message in enumerate(message_list):
-        stdscr.addstr(line + 1, 2, "{}".format(message))
+        stdscr.addstr(offset + line + 1, 2, "{}".format(message))
 
-    #stdscr.vline(1, 0, "|", len(message_list))
-    #stdscr.vline(1, 79, "|", len(message_list))
+
+
 
 ####---- Test print() ----####
 #reader, version = initialize_nfc_reader()
@@ -163,16 +164,25 @@ def text_frame(stdscr, message_list):
 #print(disable_relay(board, out_pins['laser'], True))
 
 def main(stdscr):
+    intro = "This program will allow you to change the state of the laser and PSU, and reset the GRBL board (if you really need to).\n\nTest?"
+
     stdscr.clear()
     stdscr.resize(20,80)
-    introduction = ["This program will allow you to change the state of the laser and PSU, and",
-                    "reset the GRBL board (if you really need to.",
-                    "",
-                    "Now checking for your NFC tag..."
-                   ]
-    text_frame(stdscr, introduction)
+
+    offset = 0
+    for message in intro.split('\n'):
+        message_list = textwrap.wrap(message)
+        text_frame(stdscr, message_list, offset)
+        if len(message_list) == 0:
+            offset += 1
+        else:
+            offset += len(message_list)
+
     stdscr.box()
     stdscr.refresh()
     stdscr.getkey()
 
 curses.wrapper(main)
+
+
+
