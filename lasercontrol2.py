@@ -137,7 +137,7 @@ def text_horizontal_border(stdscr, line):
     stdscr.hline(line, 0, "+", 80)
     stdscr.hline(line, 1, "-", 78) # Cover middle with '-'
 
-def text_frame(stdscr, message, offset=0):
+def text_frame(message, stdscr, offset=0):
     """Takes in string and add them to the curses window, wrap as neccessary."""
 
     for line_str in message.split("\n"):
@@ -168,15 +168,22 @@ def text_frame(stdscr, message, offset=0):
 #print(disable_relay(board, out_pins['laser'], True))
 
 def main(stdscr):
-    intro = "This program will allow you to change the state of the laser and PSU, and reset the GRBL board (if you really need to).\n\nTest?"
+    intro = "This program will allow you to change the state of the laser and PSU, and reset the GRBL board (if you really need to).\n\nSearching for NFC tag...\n\n"
 
     stdscr.clear()
     stdscr.resize(20,80)
 
-    text_frame(stdscr, intro)
-
+    text_frame(intro, stdscr)
     stdscr.box()
     stdscr.refresh()
+
+    reader, version = initialize_nfc_reader()
+    user_id = get_uid_block(reader)
+    
+    y, x = stdscr.getyx()
+    text_frame("Your NFC UID is 0x{}".format(user_id), stdscr, offset=y)
+    stdscr.refresh()
+
     stdscr.getkey()
 
 curses.wrapper(main)
