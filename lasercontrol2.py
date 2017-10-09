@@ -144,8 +144,8 @@ def text_frame(stdscr, message_list):
     for line,message in enumerate(message_list):
         stdscr.addstr(line + 1, 2, "{}".format(message))
 
-    stdscr.vline(1, 0, "|", len(message_list))
-    stdscr.vline(1, 79, "|", len(message_list))
+    #stdscr.vline(1, 0, "|", len(message_list))
+    #stdscr.vline(1, 79, "|", len(message_list))
 
 ####---- Test print() ----####
 #reader, version = initialize_nfc_reader()
@@ -164,14 +164,14 @@ def text_frame(stdscr, message_list):
 
 def main(stdscr):
     stdscr.clear()
+    stdscr.resize(20,80)
     introduction = ["This program will allow you to change the state of the laser and PSU, and",
                     "reset the GRBL board (if you really need to.",
                     "",
                     "Now checking for your NFC tag..."
                    ]
-    text_horizontal_border(stdscr, 0)
     text_frame(stdscr, introduction)
-    text_horizontal_border(stdscr, len(introduction)+1)
+    stdscr.box()
     stdscr.refresh()
     stdscr.getkey()
 
