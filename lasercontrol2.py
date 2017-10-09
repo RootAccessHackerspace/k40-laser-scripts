@@ -137,13 +137,17 @@ def text_horizontal_border(stdscr, line):
     stdscr.hline(line, 0, "+", 80)
     stdscr.hline(line, 1, "-", 78) # Cover middle with '-'
 
-def text_frame(stdscr, message_list, offset=0):
-    """Takes in list of message lines and add them to the curses window.
+def text_frame(stdscr, message, offset=0):
+    """Takes in string and add them to the curses window, wrap as neccessary."""
 
-    Each item of the list should be an individual line no more than 76 chars.
-    Each item will be printed on its own line."""
-    for line,message in enumerate(message_list):
-        stdscr.addstr(offset + line + 1, 2, "{}".format(message))
+    for line_str in message.split("\n"):
+        message_list = textwrap.wrap(line_str, 76)
+        for line,text in enumerate(message_list):
+            stdscr.addstr(offset + line + 1, 2, text)
+        if len(message_list) == 0:
+            offset += 1
+        else:
+            offset += len(message_list)
 
 
 
@@ -169,14 +173,7 @@ def main(stdscr):
     stdscr.clear()
     stdscr.resize(20,80)
 
-    offset = 0
-    for message in intro.split('\n'):
-        message_list = textwrap.wrap(message)
-        text_frame(stdscr, message_list, offset)
-        if len(message_list) == 0:
-            offset += 1
-        else:
-            offset += len(message_list)
+    text_frame(stdscr, intro)
 
     stdscr.box()
     stdscr.refresh()
