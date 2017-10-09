@@ -1,0 +1,6 @@
+Adafruit-GPIO==1.0.3
+Adafruit-PN532==1.2.1
+Adafruit-PureIO==0.2.1
+argparse==1.2.1
+spidev==3.2
+wsgiref==0.1.2
