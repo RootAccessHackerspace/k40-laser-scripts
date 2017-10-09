@@ -133,7 +133,8 @@ def verify_text_length(message_list, length=76):
         return True
 
 def text_horizontal_border(stdscr, line):
-    stdscr.addstr(line, 0, "+------------------------------------------------------------------------------+")
+    stdscr.hline(line, 0, "+", 80)
+    stdscr.hline(line, 1, "-", 78) # Cover middle with '-'
 
 def text_frame(stdscr, message_list):
     """Takes in list of message lines and add them to the curses window.
@@ -141,8 +142,10 @@ def text_frame(stdscr, message_list):
     Each item of the list should be an individual line no more than 76 chars.
     Each item will be printed on its own line."""
     for line,message in enumerate(message_list):
-        stdscr.addstr(line + 1, 0, "| {}".format(message))
-        stdscr.addstr(line + 1, 78, " |")
+        stdscr.addstr(line + 1, 2, "{}".format(message))
+
+    stdscr.vline(1, 0, "|", len(message_list))
+    stdscr.vline(1, 79, "|", len(message_list))
 
 ####---- Test print() ----####
 #reader, version = initialize_nfc_reader()
@@ -161,9 +164,11 @@ def text_frame(stdscr, message_list):
 
 def main(stdscr):
     stdscr.clear()
-    introduction = ["This is a test",
-                    "of the emergency",
-                    "broadcast system."]
+    introduction = ["This program will allow you to change the state of the laser and PSU, and",
+                    "reset the GRBL board (if you really need to.",
+                    "",
+                    "Now checking for your NFC tag..."
+                   ]
     text_horizontal_border(stdscr, 0)
     text_frame(stdscr, introduction)
     text_horizontal_border(stdscr, len(introduction)+1)
