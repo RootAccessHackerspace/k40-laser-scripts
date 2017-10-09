@@ -182,8 +182,17 @@ def main(stdscr):
     user_id = get_uid_block(reader)
     
     y, x = stdscr.getyx()
-    text_frame("Your NFC UID is 0x{}".format(user_id), stdscr, offset=y) 
+    nfc_id = "Your NFC UID is 0x{}".format(user_id)
+    text_frame(nfc_id, stdscr, offset=y)
+
+    y, x = stdscr.getyx()
+    text_frame("\nPress any key to continue...", stdscr, offset=y)
     stdscr.refresh()
+
+    # Next: Verify UID (esp. that it belongs to the logged in user, then
+    # attempt to turn on PSU and laser.
+    # Make sure that the laser constantly requires the presence of the tag,
+    # otherwise turn it off.
 
     stdscr.getkey()
 
@@ -192,6 +201,7 @@ if __name__ == '__main__':
     try:
         print("Starting up curses wrapper...")
         curses.wrapper(main)
+        print("Shutting down after a hard day...")
     except KeyboardInterrupt:
         print("Shutting down...")
         try:
