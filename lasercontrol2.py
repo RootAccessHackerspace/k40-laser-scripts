@@ -13,7 +13,6 @@ access to the laser, then let the user actually do so.
 from __future__ import print_function
 
 import sys
-import os
 import binascii
 import time
 import curses
@@ -33,13 +32,13 @@ OUT_PINS = dict(laser=20, psu=21, grbl=27)
 IN_PINS = dict() # None currently
 
 ####---- Generic Functions ----####
-def initialize_nfc_reader(cs=SPI['cs'],
+def initialize_nfc_reader(cslv=SPI['cs'],
                           mosi=SPI['mosi'],
                           miso=SPI['miso'],
                           sclk=SPI['sclk']):
     """Take in pin assignments, return class instance and firmware version"""
 
-    reader = PN532.PN532(cs=cs, mosi=mosi, miso=miso, sclk=sclk)
+    reader = PN532.PN532(cs=cslv, mosi=mosi, miso=miso, sclk=sclk)
     success = False
     while not success:
         try:
@@ -93,10 +92,7 @@ def _dummy_verify_uid(uid):
     This is just a way of being able to check the other functions without
     having to implement the API calls yet (esp. since the API doesn't even
     exist yet)"""
-    if uid is not None:
-        return True
-    else:
-        return False
+    return bool(uid)
 
 def verify_uid(uid):
     """Takes a UID, returns True/False depending on user permission"""
@@ -112,8 +108,14 @@ def gpio_setup():
         print("Setting pin {} to OUT".format(pin))
         try:
             board.setup(pin, GPIO.OUT)
-        except:
-            message = "Something went wron with setting up '{}'".format(item)
+        except NameError:
+            message = "Invalid module defined for GPIO assignment"
+            print(message)
+        except ValueError:
+            message = "Invalid pin value ({})".format(pin)
+            print(message)
+        except AttributeError:
+            message = "Invalid GPIO assignment for {}".format(item)
             print(message)
     return board
 
@@ -138,10 +140,10 @@ def verify_text_length(message_list, length=76):
         if message_length > length:
             failures.append((position, message_length))
 
-    if len(failures) > 0:
+    if failures:
         return failures
-    else:
-        return True
+    # No need for 'else' since it'll return no matter what
+    return True
 
 def text_horizontal_border(stdscr, line):
     """Create horizontal text border on line. DEPRECATED"""
@@ -155,7 +157,7 @@ def text_frame(message, stdscr, offset=0):
         message_list = textwrap.wrap(line_str, 76)
         for line, text in enumerate(message_list):
             stdscr.addstr(offset + line + 1, 2, text)
-        if len(message_list) == 0:
+        if not message_list: # If the list is empty, add 1 manually
             offset += 1
         else:
             offset += len(message_list)
@@ -169,7 +171,7 @@ def text_frame(message, stdscr, offset=0):
 
 #print(get_uid_block(reader))
 
-#for uid in [None, True, False, 1234567, 
+#for uid in [None, True, False, 1234567,
 #            "user id str", binascii.unhexlify("deadbeef")]:
 #    print("{}: {}".format(str(uid), verify_uid(uid)))
 
@@ -182,9 +184,9 @@ def text_frame(message, stdscr, offset=0):
 def main(stdscr):
     """Main function. Run in curses.wrapper()"""
 
-    intro = "This program will allow you to change the state of the \
-            laser and PSU, and reset the GRBL board (if you really need \
-            to).\n\nSearching for NFC tag...\n\n\n"
+    intro = "This program will allow you to change the state of the " \
+            "laser and PSU, and reset the GRBL board (if you really need " \
+            "to).\n\nSearching for NFC tag...\n\n\n"
 
     stdscr.clear()
     stdscr.resize(20, 80)
@@ -195,7 +197,7 @@ def main(stdscr):
 
     reader, _ = initialize_nfc_reader()
     user_id = get_uid_block(reader)
-    
+
     y_offset, _ = stdscr.getyx()
     nfc_id = "Your NFC UID is 0x{}".format(user_id)
     text_frame(nfc_id, stdscr, offset=y_offset)
@@ -222,7 +224,4 @@ if __name__ == '__main__':
         try:
             sys.exit(0)
         except SystemExit:
-            os._exit(0)
-
-
-
+            sys.exit(0)
