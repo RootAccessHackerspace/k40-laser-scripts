@@ -45,8 +45,8 @@ def initialize_nfc_reader(cslv=SPI['cs'],
             reader.begin()
             success = True
         except RuntimeError:
-            print("Failed to detect reader. \
-                  Check pin assignments and connections.")
+            print("Failed to detect reader. "\
+                  "Check pin assignments and connections.")
             time.sleep(2)
 
     # Make sure reader is functioning (_ is the IC)
@@ -131,6 +131,38 @@ def disable_relay(board, pin, disabled=True):
     return board.input(pin)
 
 ####---- Text functions ----####
+def error_message(stdscr, error):
+    """(curses.window, message string) -> None
+
+    This function should take in (essentially) an error message string
+    and do a little "pop-up" style curses window with the error message.
+    The user can then either dismiss the error or halt the program.
+    """
+    curses.curs_set(0)
+    #x_cur, y_cur = stdscr.getyx() # Save these for later...
+    curses.flash() # Visual bell, let's get started!
+    # Create sub-window
+    subscr = stdscr.subwin(10, 60, 5, 10)
+    subscr.bkgd(" ", curses.A_REVERSE)
+    subscr.box()
+    subscr.refresh()
+
+    # Display error text
+    text_frame(error, subscr)
+    subscr.refresh()
+    # List options
+    subscr.addstr(9, 12, "Continue")
+    subscr.addstr(9, 41, "Quit (q)")
+    subscr.refresh()
+
+    response = subscr.getkey()
+    if response == "q":
+        raise KeyboardInterrupt
+    else:
+        subscr.erase()
+        subscr.bkgd(" ", curses.color_pair(0))
+        stdscr.refresh()
+
 def verify_text_length(message_list, length=76):
     """Takes in a list of messages, returns True if all items are appropriate
     length, first item number and length otherwise"""
@@ -150,13 +182,16 @@ def text_horizontal_border(stdscr, line):
     stdscr.hline(line, 0, "+", 80)
     stdscr.hline(line, 1, "-", 78) # Cover middle with '-'
 
-def text_frame(message, stdscr, offset=0):
+def text_frame(message, stdscr, offset=0, mode=None):
     """Takes in string and add them to the curses window, wrap as neccessary."""
 
     for line_str in message.split("\n"):
         message_list = textwrap.wrap(line_str, 76)
         for line, text in enumerate(message_list):
-            stdscr.addstr(offset + line + 1, 2, text)
+            if mode:
+                stdscr.addstr(offset + line + 1, 2, text, mode)
+            else:
+                stdscr.addstr(offset + line + 1, 2, text)
         if not message_list: # If the list is empty, add 1 manually
             offset += 1
         else:
@@ -184,6 +219,9 @@ def text_frame(message, stdscr, offset=0):
 def main(stdscr):
     """Main function. Run in curses.wrapper()"""
 
+    # Let's call this color pair "reverse"
+    curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
+
     intro = "This program will allow you to change the state of the " \
             "laser and PSU, and reset the GRBL board (if you really need " \
             "to).\n\nSearching for NFC tag...\n\n\n"
@@ -191,9 +229,11 @@ def main(stdscr):
     stdscr.clear()
     stdscr.resize(20, 80)
 
+    error_message(stdscr, "message")
     text_frame(intro, stdscr)
     stdscr.box()
     stdscr.refresh()
+    error_message(stdscr, "continue?")
 
     reader, _ = initialize_nfc_reader()
     user_id = get_uid_block(reader)
@@ -201,6 +241,7 @@ def main(stdscr):
     y_offset, _ = stdscr.getyx()
     nfc_id = "Your NFC UID is 0x{}".format(user_id)
     text_frame(nfc_id, stdscr, offset=y_offset)
+    error_message(stdscr, "Let's do this thing, {}".format(user_id))
 
     y_offset, _ = stdscr.getyx()
     text_frame("\nPress any key to continue...", stdscr, offset=y_offset)
