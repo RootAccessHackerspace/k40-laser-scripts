@@ -151,7 +151,7 @@ def error_message(stdscr, error):
     text_frame(error, subscr)
     subscr.refresh()
     # List options
-    subscr.addstr(9, 12, "Continue")
+    subscr.addstr(9, 9, "Continue (any)")
     subscr.addstr(9, 41, "Quit (q)")
     subscr.refresh()
 
@@ -161,7 +161,7 @@ def error_message(stdscr, error):
     else:
         subscr.erase()
         subscr.bkgd(" ", curses.color_pair(0))
-        stdscr.refresh()
+        subscr.refresh()
 
 def verify_text_length(message_list, length=76):
     """Takes in a list of messages, returns True if all items are appropriate
@@ -241,6 +241,7 @@ def main(stdscr):
     y_offset, _ = stdscr.getyx()
     nfc_id = "Your NFC UID is 0x{}".format(user_id)
     text_frame(nfc_id, stdscr, offset=y_offset)
+    stdscr.getkey()
     error_message(stdscr, "Let's do this thing, {}".format(user_id))
 
     y_offset, _ = stdscr.getyx()
