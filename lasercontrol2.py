@@ -17,6 +17,7 @@ import binascii
 import time
 import curses
 import textwrap
+import random
 
 import Adafruit_GPIO as GPIO
 import Adafruit_PN532 as PN532
@@ -66,22 +67,32 @@ def initialize_nfc_reader(stdscr,
 
     return reader, "{}.{}.{}".format(version, revision, support)
 
-def get_uid_noblock(reader):
+def _dummy_get_uid():
+    """() -> random 4 byte hex string"""
+    return "%08x" % random.randrange(16**8)
+
+def get_uid_noblock(reader, dummy=False):
     """Takes a reader object and returns the hex UID of a tag,
     even if it's None"""
-    uid_binary = reader.read_passive_target()
+    # Fetch dummy if needed, mostly for testing purposes
+    if dummy:
+        uid_ascii = _dummy_get_uid()
+        return uid_ascii
+    else:
+        uid_binary = reader.read_passive_target()
+    # uid_binary is None if dummy, but that doesn't affect us overall
     if uid_binary is None:
         uid_ascii = uid_binary
     else:
         uid_ascii = binascii.hexlify(uid_binary)
     return uid_ascii
 
-def get_uid_block(reader):
+def get_uid_block(reader, dummy=False):
     """Takes a reader object and returns the UID of a tag, stopping
     script until UID is returned"""
     uid = None
     while uid is None:
-        uid = get_uid_noblock(reader)
+        uid = get_uid_noblock(reader, dummy) # Just pass the dummy argument
         time.sleep(0.5) # Prevent script from taking too much CPU time
     return uid
 
@@ -98,14 +109,16 @@ def verify_uid(uid):
     """Takes a UID, returns True/False depending on user permission"""
     return _dummy_verify_uid(uid) # No API to use yet for users
 
-def gpio_setup(stdscr):
+def gpio_setup(stdscr, quiet=True):
     """Set up GPIO for use, returns Adafruit_GPIO class instance.
 
     Not only gets the GPIO for the board, but also sets the appropriate pins
     for output and input."""
     board = GPIO.get_platform_gpio()
     for item, pin in OUT_PINS.iteritems():
-        error_message(stdscr, "Setting pin {} to OUT".format(pin))
+        if not quiet:
+            error_message(stdscr, "Setting pin {} to OUT".format(pin))
+        # Actually try now
         try:
             board.setup(pin, GPIO.OUT)
         except NameError:
@@ -221,22 +234,29 @@ def main(stdscr):
             "to).\n\nSearching for NFC tag...\n\n\n"
 
     stdscr.clear()
-    stdscr.resize(20, 80)
+    stdscr.resize(20, 80) # 20 rows, 80 cols
 
+    # Initialize reader and GPIO pins
+    reader, _ = initialize_nfc_reader(stdscr)
+    board = gpio_setup(stdscr)
+    _ = disable_relay(board, OUT_PINS['laser'])
+    _ = disable_relay(board, OUT_PINS['psu'])
+
+    # Welcome, welcome, one and all...
     text_frame(intro, stdscr)
     stdscr.box()
     stdscr.refresh()
 
-    reader, _ = initialize_nfc_reader(stdscr)
-    user_id = get_uid_block(reader)
-
     y_offset, _ = stdscr.getyx()
-    nfc_id = "Your NFC UID is 0x{}".format(user_id)
-    text_frame(nfc_id, stdscr, offset=y_offset)
-
-    y_offset, _ = stdscr.getyx()
-    text_frame("\nPress any key to continue...", stdscr, offset=y_offset)
-    stdscr.refresh()
+    while True:
+        user_id = get_uid_block(reader, dummy=True)
+        nfc_id = "Your NFC UID is 0x{}, correct? [y/n]".format(user_id)
+        text_frame(nfc_id, stdscr, offset=y_offset)
+        stdscr.refresh()
+        response = stdscr.getkey()
+        if response == "y":
+            text_frame("Continue!", stdscr, offset=y_offset + 1)
+            break
 
     # Next: Verify UID (esp. that it belongs to the logged in user, then
     # attempt to turn on PSU and laser.
