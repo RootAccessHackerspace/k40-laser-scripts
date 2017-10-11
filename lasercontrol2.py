@@ -32,7 +32,8 @@ OUT_PINS = dict(laser=20, psu=21, grbl=27)
 IN_PINS = dict() # None currently
 
 ####---- Generic Functions ----####
-def initialize_nfc_reader(cslv=SPI['cs'],
+def initialize_nfc_reader(stdscr,
+                          cslv=SPI['cs'],
                           mosi=SPI['mosi'],
                           miso=SPI['miso'],
                           sclk=SPI['sclk']):
@@ -45,14 +46,14 @@ def initialize_nfc_reader(cslv=SPI['cs'],
             reader.begin()
             success = True
         except RuntimeError:
-            print("Failed to detect reader. "\
-                  "Check pin assignments and connections.")
-            time.sleep(2)
+            msg = "Failed to detect reader. " \
+                    "Check pin assignments and connections"
+            error_message(stdscr, msg)
 
     # Make sure reader is functioning (_ is the IC)
     _, version, revision, support = reader.get_firmware_version()
     if (version is None) or (revision is None):
-        print("Something went wrong")
+        error_message(stdscr, "Something went wrong")
 
     # Configure reader to accept Mifare cards (and all cards, really)
     configured = False
@@ -61,8 +62,7 @@ def initialize_nfc_reader(cslv=SPI['cs'],
             reader.SAM_configuration()
             configured = True
         except RuntimeError:
-            print("Something went wrong during configuration.")
-            time.sleep(2)
+            error_message(stdscr, "Something went wrong during configuration.")
 
     return reader, "{}.{}.{}".format(version, revision, support)
 
@@ -98,25 +98,25 @@ def verify_uid(uid):
     """Takes a UID, returns True/False depending on user permission"""
     return _dummy_verify_uid(uid) # No API to use yet for users
 
-def gpio_setup():
+def gpio_setup(stdscr):
     """Set up GPIO for use, returns Adafruit_GPIO class instance.
 
     Not only gets the GPIO for the board, but also sets the appropriate pins
     for output and input."""
     board = GPIO.get_platform_gpio()
     for item, pin in OUT_PINS.iteritems():
-        print("Setting pin {} to OUT".format(pin))
+        error_message(stdscr, "Setting pin {} to OUT".format(pin))
         try:
             board.setup(pin, GPIO.OUT)
         except NameError:
             message = "Invalid module defined for GPIO assignment"
-            print(message)
+            error_message(stdscr, message)
         except ValueError:
             message = "Invalid pin value ({})".format(pin)
-            print(message)
+            error_message(stdscr, message)
         except AttributeError:
             message = "Invalid GPIO assignment for {}".format(item)
-            print(message)
+            error_message(stdscr, message)
     return board
 
 def disable_relay(board, pin, disabled=True):
@@ -139,14 +139,11 @@ def error_message(stdscr, error):
     The user can then either dismiss the error or halt the program.
     """
     curses.curs_set(0)
-    #x_cur, y_cur = stdscr.getyx() # Save these for later...
-    curses.flash() # Visual bell, let's get started!
     # Create sub-window
     subscr = stdscr.subwin(10, 60, 5, 10)
     subscr.bkgd(" ", curses.A_REVERSE)
     subscr.box()
     subscr.refresh()
-
     # Display error text
     text_frame(error, subscr)
     subscr.refresh()
@@ -219,9 +216,6 @@ def text_frame(message, stdscr, offset=0, mode=None):
 def main(stdscr):
     """Main function. Run in curses.wrapper()"""
 
-    # Let's call this color pair "reverse"
-    curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
-
     intro = "This program will allow you to change the state of the " \
             "laser and PSU, and reset the GRBL board (if you really need " \
             "to).\n\nSearching for NFC tag...\n\n\n"
@@ -229,20 +223,16 @@ def main(stdscr):
     stdscr.clear()
     stdscr.resize(20, 80)
 
-    error_message(stdscr, "message")
     text_frame(intro, stdscr)
     stdscr.box()
     stdscr.refresh()
-    error_message(stdscr, "continue?")
 
-    reader, _ = initialize_nfc_reader()
+    reader, _ = initialize_nfc_reader(stdscr)
     user_id = get_uid_block(reader)
 
     y_offset, _ = stdscr.getyx()
     nfc_id = "Your NFC UID is 0x{}".format(user_id)
     text_frame(nfc_id, stdscr, offset=y_offset)
-    stdscr.getkey()
-    error_message(stdscr, "Let's do this thing, {}".format(user_id))
 
     y_offset, _ = stdscr.getyx()
     text_frame("\nPress any key to continue...", stdscr, offset=y_offset)
