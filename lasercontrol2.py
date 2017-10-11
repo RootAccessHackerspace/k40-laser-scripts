@@ -31,6 +31,8 @@ SPI = dict(cs=8, mosi=10, miso=9, sclk=11)
 OUT_PINS = dict(laser=20, psu=21, grbl=27)
 ## Sensors and other inputs
 IN_PINS = dict() # None currently
+# For the GPIO
+BOARD = None
 
 ####---- Generic Functions ----####
 ### NFC-related
@@ -215,6 +217,7 @@ def text_frame(message, stdscr, offset=0, mode=None):
 def main(stdscr):
     """Main function. Run in curses.wrapper()"""
 
+    global BOARD
     intro = "This program will allow you to change the state of the " \
             "laser and PSU, and reset the GRBL board (if you really need " \
             "to).\n\nSearching for NFC tag...\n\n\n"
@@ -224,9 +227,9 @@ def main(stdscr):
 
     # Initialize reader and GPIO pins
     reader, _ = initialize_nfc_reader(stdscr)
-    board = gpio_setup(stdscr)
-    _ = disable_relay(board, OUT_PINS['laser'])
-    _ = disable_relay(board, OUT_PINS['psu'])
+    BOARD = gpio_setup(stdscr)
+    _ = disable_relay(BOARD, OUT_PINS['laser'])
+    _ = disable_relay(BOARD, OUT_PINS['psu'])
 
     # Welcome, welcome, one and all...
     text_frame(intro, stdscr)
@@ -251,15 +254,20 @@ def main(stdscr):
 
     stdscr.getkey()
 
+def shutdown():
+    """Shutdown commands"""
+    _ = disable_relay(BOARD, OUT_PINS['laser'])
+    _ = disable_relay(BOARD, OUT_PINS['psu'])
+
+
 ####---- BODY ----####
 if __name__ == '__main__':
     try:
         print("Starting up curses wrapper...")
         curses.wrapper(main)
         print("Shutting down after a hard day...")
+        shutdown()
     except KeyboardInterrupt:
         print("Shutting down...")
-        try:
-            sys.exit(0)
-        except SystemExit:
-            sys.exit(0)
+        shutdown()
+        sys.exit(0)
