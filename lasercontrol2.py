@@ -33,6 +33,7 @@ OUT_PINS = dict(laser=20, psu=21, grbl=27)
 IN_PINS = dict() # None currently
 
 ####---- Generic Functions ----####
+### NFC-related
 def initialize_nfc_reader(stdscr,
                           cslv=SPI['cs'],
                           mosi=SPI['mosi'],
@@ -67,6 +68,7 @@ def initialize_nfc_reader(stdscr,
 
     return reader, "{}.{}.{}".format(version, revision, support)
 
+## NFC UID get
 def _dummy_get_uid():
     """() -> random 4 byte hex string"""
     return "%08x" % random.randrange(16**8)
@@ -96,6 +98,7 @@ def get_uid_block(reader, dummy=False):
         time.sleep(0.5) # Prevent script from taking too much CPU time
     return uid
 
+## NFC UID verify
 def _dummy_verify_uid(uid):
     """Takes a UID, verifies that it matches a dummy value,
     and returns True/False
@@ -109,6 +112,7 @@ def verify_uid(uid):
     """Takes a UID, returns True/False depending on user permission"""
     return _dummy_verify_uid(uid) # No API to use yet for users
 
+### GPIO-related
 def gpio_setup(stdscr, quiet=True):
     """Set up GPIO for use, returns Adafruit_GPIO class instance.
 
@@ -207,25 +211,7 @@ def text_frame(message, stdscr, offset=0, mode=None):
         else:
             offset += len(message_list)
 
-
-
-
-####---- Test print() ----####
-#reader, version = initialize_nfc_reader()
-#print("{}\n{}".format(reader, version))
-
-#print(get_uid_block(reader))
-
-#for uid in [None, True, False, 1234567,
-#            "user id str", binascii.unhexlify("deadbeef")]:
-#    print("{}: {}".format(str(uid), verify_uid(uid)))
-
-#board = gpio_setup()
-#print(board)
-
-#print(disable_relay(board, out_pins['laser'], False))
-#print(disable_relay(board, out_pins['laser'], True))
-
+####---- MAIN ----####
 def main(stdscr):
     """Main function. Run in curses.wrapper()"""
 
@@ -265,7 +251,7 @@ def main(stdscr):
 
     stdscr.getkey()
 
-
+####---- BODY ----####
 if __name__ == '__main__':
     try:
         print("Starting up curses wrapper...")
