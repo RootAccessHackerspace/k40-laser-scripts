@@ -13,11 +13,14 @@ access to the laser, then let the user actually do so.
 from __future__ import print_function
 
 import sys
+import os
+import pwd
 import binascii
 import time
 import curses
 import textwrap
 import random
+import crypt
 
 import Adafruit_GPIO as GPIO
 import Adafruit_PN532 as PN532
@@ -113,6 +116,36 @@ def _dummy_verify_uid(uid):
 def verify_uid(uid):
     """Takes a UID, returns True/False depending on user permission"""
     return _dummy_verify_uid(uid) # No API to use yet for users
+
+def get_user_uid(uid, cuid_file="/etc/pam_nfc.conf", dummy=False):
+    """Takes in a UID string, returns string of user name."""
+    if not dummy:
+        if os.getuid() != 0:
+            raise OSError("Check your priviledge")
+    cuidexist = os.path.isfile(cuid_file)
+    if not cuidexist:
+        raise IOError("Not a valid password file")
+
+    with open(cuid_file, "r") as cryptuids:
+        crypteduid = crypt.crypt(uid, 'RC')
+        username = None
+        for line in cryptuids:
+            if crypteduid in line:
+                username = line.split(" ")[0]
+    return username
+
+def is_current_user(username):
+    """Takes in a username, returns whether logged-in user"""
+    cur_uid = os.getuid()
+    cur_nam = pwd.getpwuid(cur_uid)[0]
+    return cur_nam == username
+
+def get_user_realname():
+    """Returns a string of the current user's real name"""
+    cur_uid = os.getuid()
+    gecos = pwd.getpwuid(cur_uid)[4]
+    real_name = gecos.split(",")[0]
+    return real_name
 
 ### GPIO-related
 def gpio_setup(stdscr, quiet=True):
@@ -222,8 +255,13 @@ def main(stdscr):
             "laser and PSU, and reset the GRBL board (if you really need " \
             "to).\n\nSearching for NFC tag...\n\n\n"
 
+    # Success/failure color pairs
+    curses.init_pair(2, curses.COLOR_GREEN, curses.COLOR_BLACK)
+    curses.init_pair(3, curses.COLOR_RED, curses.COLOR_BLACK)
+
     stdscr.clear()
     stdscr.resize(20, 80) # 20 rows, 80 cols
+    curses.curs_set(0) # Cursor should be invsisible
 
     # Initialize reader and GPIO pins
     reader, _ = initialize_nfc_reader(stdscr)
@@ -244,7 +282,6 @@ def main(stdscr):
         stdscr.refresh()
         response = stdscr.getkey()
         if response == "y":
-            text_frame("Continue!", stdscr, offset=y_offset + 1)
             break
 
     # Next: Verify UID (esp. that it belongs to the logged in user, then
@@ -252,12 +289,37 @@ def main(stdscr):
     # Make sure that the laser constantly requires the presence of the tag,
     # otherwise turn it off.
 
+    username = get_user_uid("two", "./test_pam.conf", dummy=True)
+    y_offset, _ = stdscr.getyx()
+    while True:
+        # We don't except the user to ever have to press "n", since that
+        # would imply that there is something wrong with get_user_uid().
+        user_string = "You are user {}, correct? [y/n]".format(username)
+        text_frame(user_string, stdscr, y_offset)
+        stdscr.refresh()
+        response = stdscr.getkey()
+        if response == "y":
+            if not is_current_user(username):
+                raise SystemExit("Invalid user+key")
+            break
+    # Make sure that they aren't using someone else's NFC tag
+    user_string = "{} ({})".format(get_user_realname(), username)
+    y_offset, _ = stdscr.getyx()
+    user_verified = verify_uid(user_id)
+    if user_verified:
+        text_frame(user_string, stdscr, -1, mode=curses.color_pair(2))
+    else:
+        text_frame(user_string, stdscr, -1, mode=curses.color_pair(3))
+    text_frame("Let's get the laser going!", stdscr, y_offset)
+    stdscr.refresh()
+
     stdscr.getkey()
 
 def shutdown():
     """Shutdown commands"""
     _ = disable_relay(BOARD, OUT_PINS['laser'])
     _ = disable_relay(BOARD, OUT_PINS['psu'])
+    sys.exit(0)
 
 
 ####---- BODY ----####
@@ -270,4 +332,6 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print("Shutting down...")
         shutdown()
-        sys.exit(0)
+    except SystemExit as ex:
+        print(ex)
+        shutdown()
