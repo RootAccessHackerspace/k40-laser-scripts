@@ -136,9 +136,7 @@ def get_user_uid(uid, cuid_file="/etc/pam_nfc.conf", dummy=False):
 
 def is_current_user(username):
     """Takes in a username, returns whether logged-in user"""
-    cur_uid = os.getuid()
-    cur_nam = pwd.getpwuid(cur_uid)[0]
-    return cur_nam == username
+    return username == os.environ['SUDO_USER']
 
 def get_user_realname():
     """Returns a string of the current user's real name"""
@@ -252,8 +250,8 @@ def main(stdscr):
 
     global BOARD
     intro = "This program will allow you to change the state of the " \
-            "laser and PSU, and reset the GRBL board (if you really need " \
-            "to).\n\nSearching for NFC tag...\n\n\n"
+            "laser and PSU, and reset the GRBL board (to act as a reset " \
+            "button).\n\nSearching for NFC tag...\n\n\n"
 
     # Success/failure color pairs
     curses.init_pair(2, curses.COLOR_GREEN, curses.COLOR_BLACK)
@@ -276,7 +274,7 @@ def main(stdscr):
 
     y_offset, _ = stdscr.getyx()
     while True:
-        user_id = get_uid_block(reader, dummy=True)
+        user_id = get_uid_block(reader, dummy=False)
         nfc_id = "Your NFC UID is 0x{}, correct? [y/n]".format(user_id)
         text_frame(nfc_id, stdscr, offset=y_offset)
         stdscr.refresh()
@@ -289,11 +287,14 @@ def main(stdscr):
     # Make sure that the laser constantly requires the presence of the tag,
     # otherwise turn it off.
 
-    username = get_user_uid("two", "./test_pam.conf", dummy=True)
     y_offset, _ = stdscr.getyx()
     while True:
         # We don't except the user to ever have to press "n", since that
         # would imply that there is something wrong with get_user_uid().
+        # TO DO: There might actually be something wrong with get_user_uid(),
+        # if two users have the same NFC tag. Although this may not be an
+        # actual problem, and just something that arises during testing.
+        username = get_user_uid(user_id)
         user_string = "You are user {}, correct? [y/n]".format(username)
         text_frame(user_string, stdscr, y_offset)
         stdscr.refresh()
@@ -309,7 +310,7 @@ def main(stdscr):
     if user_verified:
         text_frame(user_string, stdscr, -1, mode=curses.color_pair(2))
     else:
-        text_frame(user_string, stdscr, -1, mode=curses.color_pair(3))
+        raise SystemExit("Not authorized user")
     text_frame("Let's get the laser going!", stdscr, y_offset)
     stdscr.refresh()
 
