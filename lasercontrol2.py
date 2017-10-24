@@ -372,6 +372,9 @@ def shutdown():
     sys.exit(0)
 
 def handler(signum, frame):
+    """Signal handler"""
+    print("Signal {}".format(signum))
+    _ = frame
     shutdown()
 
 ####---- BODY ----####
