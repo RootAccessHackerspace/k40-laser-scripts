@@ -180,6 +180,18 @@ def disable_relay(board, pin, disabled=True):
         board.output(pin, GPIO.LOW)
     return board.input(pin)
 
+def switch_pin(board, pin):
+    """Take GPIO instance and pin, switch pin state"""
+    cur_state = board.input(pin)
+    new_state = not cur_state
+    board.output(pin, new_state)
+
+def toggle_pin(board, pin):
+    """Take GPIO instance and pin, switch pin states for short period of time"""
+    switch_pin(board, pin)
+    time.sleep(0.25)
+    switch_pin(board, pin)
+
 ####---- Text functions ----####
 def error_message(stdscr, error):
     """(curses.window, message string) -> None
@@ -243,6 +255,25 @@ def text_frame(message, stdscr, offset=0, mode=None):
             offset += 1
         else:
             offset += len(message_list)
+
+def machine_status(stdscr, y_offset):
+    """Prints machine state, returns dictionary of number assignments"""
+    # Calculate the center of where each item will go
+    # Don't forget this this is essentially a fencepost problem
+    slices = len(OUT_PINS) + 1
+    x_max = stdscr.getmaxyx()[1]
+    x_location = [x*x_max/slices for x in range(1, slices+1)]
+    pin_disabled = [BOARD.input(pin) for pin in OUT_PINS.itervalues()]
+    # Print pin name and a number below it
+    enumerated_items = dict(enumerate(OUT_PINS))
+    for place, item in enumerated_items.iteritems():
+        start_x = x_location[place] - len(item)/2 - 1
+        stdscr.addstr(y_offset,
+                      start_x,
+                      item,
+                      curses.color_pair(2+pin_disabled[place]))
+        stdscr.addstr(y_offset+1, x_location[place]-2, "({})".format(place))
+    return enumerated_items
 
 ####---- MAIN ----####
 def main(stdscr):
@@ -313,6 +344,23 @@ def main(stdscr):
         raise SystemExit("Not authorized user")
     text_frame("Let's get the laser going!", stdscr, y_offset)
     stdscr.refresh()
+
+    while True:
+        assignments = machine_status(stdscr, 15)
+        stdscr.refresh()
+        response = stdscr.getkey()
+        try:
+            int_resp = int(response)
+            item = assignments[int_resp]
+            if item == 'grbl':
+                toggle_pin(BOARD, OUT_PINS[item])
+            else:
+                switch_pin(BOARD, OUT_PINS[item])
+        except ValueError:
+            pass
+        except KeyError:
+            pass
+        stdscr.refresh()
 
     stdscr.getkey()
 
