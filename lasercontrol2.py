@@ -14,6 +14,7 @@ from __future__ import print_function
 
 import sys
 import os
+import signal
 import pwd
 import binascii
 import time
@@ -370,9 +371,14 @@ def shutdown():
     _ = disable_relay(BOARD, OUT_PINS['psu'])
     sys.exit(0)
 
+def handler(signum, frame):
+    shutdown()
 
 ####---- BODY ----####
 if __name__ == '__main__':
+    signal.signal(signal.SIGHUP, handler)
+    signal.signal(signal.SIGINT, handler)
+    signal.signal(signal.SIGTERM, handler)
     try:
         print("Starting up curses wrapper...")
         curses.wrapper(main)
