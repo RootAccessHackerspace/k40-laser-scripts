@@ -5,7 +5,7 @@ The K40 is in a mixed-permissions environment, where some people have usage righ
 
 ## Current setup
 The original control board was removed and replaced with the following equipment:
-* Raspberry Pi 2 Model B
+* Raspberry Pi 3
 * [Protoneer RPi CNC Board](https://wiki.protoneer.co.nz/Raspberry_Pi_CNC)
 * [Pololu DRV8825 stepper motor drivers](https://www.pololu.com/product/2133)
 * [4 channel 5V relay module](https://smile.amazon.com/JBtek-Channel-Module-Arduino-Raspberry/dp/B00KTEN3TM/)
