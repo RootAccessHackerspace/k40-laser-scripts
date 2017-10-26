@@ -35,8 +35,6 @@ SPI = dict(cs=8, mosi=10, miso=9, sclk=11)
 OUT_PINS = dict(laser=20, psu=21, grbl=27)
 ## Sensors and other inputs
 IN_PINS = dict() # None currently
-# For the GPIO
-BOARD = None
 
 ####---- Generic Functions ----####
 ### NFC-related
@@ -142,6 +140,7 @@ def gpio_setup(stdscr, quiet=True):
 
     Not only gets the GPIO for the board, but also sets the appropriate pins
     for output and input."""
+    GPIO.setmode(GPIO.BCM)
     message = None
     for item, pin in OUT_PINS.iteritems():
         if not quiet:
@@ -257,7 +256,7 @@ def machine_status(stdscr, y_offset):
     slices = len(OUT_PINS) + 1
     x_max = stdscr.getmaxyx()[1]
     x_location = [x*x_max/slices for x in range(1, slices+1)]
-    pin_disabled = [BOARD.input(pin) for pin in OUT_PINS.itervalues()]
+    pin_disabled = [GPIO.input(pin) for pin in OUT_PINS.itervalues()]
     # Print pin name and a number below it
     enumerated_items = dict(enumerate(OUT_PINS))
     for place, item in enumerated_items.iteritems():
@@ -273,7 +272,6 @@ def machine_status(stdscr, y_offset):
 def main(stdscr):
     """Main function. Run in curses.wrapper()"""
 
-    global BOARD
     intro = "This program will allow you to change the state of the " \
             "laser and PSU, and reset the GRBL board (to act as a reset " \
             "button).\n\nSearching for NFC tag...\n\n\n"
@@ -293,9 +291,12 @@ def main(stdscr):
               "Firmware: {} \n Board name: {}".format(firmware, board_name)
         error_message(stdscr, msg)
         raise RuntimeError("PN532 board is having issues.")
-    BOARD = gpio_setup(stdscr)
-    _ = disable_relay(BOARD, OUT_PINS['laser'])
-    _ = disable_relay(BOARD, OUT_PINS['psu'])
+    board_setup = gpio_setup(stdscr)
+    if not board_setup:
+        error_message(stdscr, "GPIO pins failed to setup")
+        raise RuntimeError("GPIO pins failed to setup")
+    _ = disable_relay(OUT_PINS['laser'])
+    _ = disable_relay(OUT_PINS['psu'])
 
     # Welcome, welcome, one and all...
     text_frame(intro, stdscr)
@@ -352,9 +353,9 @@ def main(stdscr):
             int_resp = int(response)
             item = assignments[int_resp]
             if item == 'grbl':
-                toggle_pin(BOARD, OUT_PINS[item])
+                toggle_pin(OUT_PINS[item])
             else:
-                switch_pin(BOARD, OUT_PINS[item])
+                switch_pin(OUT_PINS[item])
         except ValueError:
             pass
         except KeyError:
@@ -366,8 +367,8 @@ def main(stdscr):
 def shutdown():
     """Shutdown commands"""
     try:
-        _ = disable_relay(BOARD, OUT_PINS['laser'])
-        _ = disable_relay(BOARD, OUT_PINS['psu'])
+        _ = disable_relay(OUT_PINS['laser'])
+        _ = disable_relay(OUT_PINS['psu'])
     except AttributeError as ex:
         print("Something went wrong shutting down: {}".format(ex))
         print("The GPIO probably never even got initialized...")
