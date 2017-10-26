@@ -12,11 +12,12 @@ access to the laser, then let the user actually do so.
 ####---- Imports ----####
 from __future__ import print_function
 
+from subprocess import check_output
+
 import sys
 import os
 import signal
 import pwd
-import binascii
 import time
 import curses
 import textwrap
@@ -24,7 +25,6 @@ import random
 import crypt
 
 import Adafruit_GPIO as GPIO
-import Adafruit_PN532 as PN532
 
 
 ####---- Variables ----####
@@ -40,67 +40,57 @@ BOARD = None
 
 ####---- Generic Functions ----####
 ### NFC-related
-def initialize_nfc_reader(stdscr,
-                          cslv=SPI['cs'],
-                          mosi=SPI['mosi'],
-                          miso=SPI['miso'],
-                          sclk=SPI['sclk']):
-    """Take in pin assignments, return class instance and firmware version"""
-
-    reader = PN532.PN532(cs=cslv, mosi=mosi, miso=miso, sclk=sclk)
-    success = False
-    while not success:
-        try:
-            reader.begin()
-            success = True
-        except RuntimeError:
-            msg = "Failed to detect reader. " \
-                    "Check pin assignments and connections"
-            error_message(stdscr, msg)
-
-    # Make sure reader is functioning (_ is the IC)
-    _, version, revision, support = reader.get_firmware_version()
-    if (version is None) or (revision is None):
-        error_message(stdscr, "Something went wrong")
-
-    # Configure reader to accept Mifare cards (and all cards, really)
-    configured = False
-    while not configured:
-        try:
-            reader.SAM_configuration()
-            configured = True
-        except RuntimeError:
-            error_message(stdscr, "Something went wrong during configuration.")
-
-    return reader, "{}.{}.{}".format(version, revision, support)
+def initialize_nfc_reader(stdscr):
+    """Verify that correct board is present, return firmware ver & name.
+    The function name is leftover from the initial function which used
+    Adafruit_PN532 to get the NFC data."""
+    raw_lines = check_output(["/usr/bin/nfc-scan-devices", "-v"]).split("\n")
+    chip_line = [line for line in raw_lines if "chip:" in line][0]
+    try:
+        chip_name = chip_line.split(" ")[1]
+        chip_firm = chip_line.split(" ")[2]
+    except IndexError:
+        msg = "No board present!"
+        error_message(stdscr, msg)
+        chip_name, chip_firm = None, None
+    return (chip_firm, chip_name)
 
 ## NFC UID get
 def _dummy_get_uid():
     """() -> random 4 byte hex string"""
     return "%08x" % random.randrange(16**8)
 
-def get_uid_noblock(reader, dummy=False):
-    """Takes a reader object and returns the hex UID of a tag,
-    even if it's None"""
+def get_uid_noblock(dummy=False):
+    """Uses libnfc via /usr/bin/nfc-list to return NFCID or None if not
+    just a single NFC tag is found"""
     # Fetch dummy if needed, mostly for testing purposes
     if dummy:
         uid_ascii = _dummy_get_uid()
-        return uid_ascii
     else:
-        uid_binary = reader.read_passive_target()
-    # uid_binary is None if dummy, but that doesn't affect us overall
-    if uid_binary is None:
-        uid_ascii = uid_binary
-    else:
-        uid_ascii = binascii.hexlify(uid_binary)
+        # Only search for ISO14443A tags, and be verbose about it
+        raw_output = check_output(["/usr/bin/nfc-list",
+                                   "-t", "1",
+                                   "-v"])
+        iso_found = [line for line in raw_output.split("\n")
+                     if "ISO14443A" in line]
+        num_found = iso_found.split(" ")[0]
+        # Check for only one tag present
+        if num_found != "1":
+            uid_ascii = None
+        else:
+            nfcid_line = [line for line in raw_output.split("\n")
+                          if "NFCID" in line]
+            # The UID will be after the colon
+            raw_uid = nfcid_line.split(":")[1]
+            uid_list = raw_uid.split(" ")
+            uid_ascii = "".join([x for x in uid_list if x != " "])
     return uid_ascii
 
-def get_uid_block(reader, dummy=False):
-    """Takes a reader object and returns the UID of a tag, stopping
-    script until UID is returned"""
+def get_uid_block(dummy=False):
+    """Returns the UID of a tag, stopping script until UID is returned"""
     uid = None
     while uid is None:
-        uid = get_uid_noblock(reader, dummy) # Just pass the dummy argument
+        uid = get_uid_noblock(dummy) # Just pass the dummy argument
         time.sleep(0.5) # Prevent script from taking too much CPU time
     return uid
 
@@ -293,8 +283,13 @@ def main(stdscr):
     stdscr.resize(20, 80) # 20 rows, 80 cols
     curses.curs_set(0) # Cursor should be invsisible
 
-    # Initialize reader and GPIO pins
-    reader, _ = initialize_nfc_reader(stdscr)
+    # Verify that reader exists, and setup GPIO pins
+    firmware, board_name = initialize_nfc_reader(stdscr)
+    if not (firmware and board_name):
+        msg = "Invalid firmware version and/or board type" \
+              "Firmware: {} \n Board name: {}".format(firmware, board_name)
+        error_message(stdscr, msg)
+        raise RuntimeError("PN532 board is having issues.")
     BOARD = gpio_setup(stdscr)
     _ = disable_relay(BOARD, OUT_PINS['laser'])
     _ = disable_relay(BOARD, OUT_PINS['psu'])
@@ -306,7 +301,7 @@ def main(stdscr):
 
     y_offset, _ = stdscr.getyx()
     while True:
-        user_id = get_uid_block(reader, dummy=False)
+        user_id = get_uid_block(dummy=False)
         nfc_id = "Your NFC UID is 0x{}, correct? [y/n]".format(user_id)
         text_frame(nfc_id, stdscr, offset=y_offset)
         stdscr.refresh()
