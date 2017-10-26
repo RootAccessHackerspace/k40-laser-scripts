@@ -24,7 +24,7 @@ import textwrap
 import random
 import crypt
 
-import RPi.GPIO as GPIO
+import wiringpi as GPIO
 
 
 ####---- Variables ----####
@@ -140,14 +140,14 @@ def gpio_setup(stdscr, quiet=True):
 
     Not only gets the GPIO for the board, but also sets the appropriate pins
     for output and input."""
-    GPIO.setmode(GPIO.BCM)
+    GPIO.wiringPiSetupGpio() # BCM mode
     message = None
     for item, pin in OUT_PINS.iteritems():
         if not quiet:
             error_message(stdscr, "Setting pin {} to OUT".format(pin))
         # Actually try now
         try:
-            GPIO.setup(pin, GPIO.OUT)
+            GPIO.pinMode(pin, GPIO.OUTPUT)
         except NameError:
             message = "Invalid module defined for GPIO assignment"
             error_message(stdscr, message)
@@ -168,16 +168,16 @@ def disable_relay(pin, disabled=True):
 
     disabled=False will enable the relay."""
     if disabled:
-        GPIO.output(pin, GPIO.HIGH)
+        GPIO.digitalWrite(pin, GPIO.HIGH)
     else:
-        GPIO.output(pin, GPIO.LOW)
-    return GPIO.input(pin)
+        GPIO.digitalWrite(pin, GPIO.LOW)
+    return GPIO.digitalRead(pin)
 
 def switch_pin(pin):
     """Take pin, switch pin state"""
-    cur_state = GPIO.input(pin)
+    cur_state = GPIO.digitalRead(pin)
     new_state = not cur_state
-    GPIO.output(pin, new_state)
+    GPIO.digitalWrite(pin, new_state)
 
 def toggle_pin(pin):
     """Take pinn, switch pin states for short period of time"""
@@ -256,7 +256,7 @@ def machine_status(stdscr, y_offset):
     slices = len(OUT_PINS) + 1
     x_max = stdscr.getmaxyx()[1]
     x_location = [x*x_max/slices for x in range(1, slices+1)]
-    pin_disabled = [GPIO.input(pin) for pin in OUT_PINS.itervalues()]
+    pin_disabled = [GPIO.digitalRead(pin) for pin in OUT_PINS.itervalues()]
     # Print pin name and a number below it
     enumerated_items = dict(enumerate(OUT_PINS))
     for place, item in enumerated_items.iteritems():
