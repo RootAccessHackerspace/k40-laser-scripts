@@ -24,7 +24,7 @@ import textwrap
 import random
 import crypt
 
-import Adafruit_GPIO as GPIO
+import RPi.GPIO as GPIO
 
 
 ####---- Variables ----####
@@ -44,9 +44,9 @@ def initialize_nfc_reader(stdscr):
     """Verify that correct board is present, return firmware ver & name.
     The function name is leftover from the initial function which used
     Adafruit_PN532 to get the NFC data."""
-    raw_lines = check_output(["/usr/bin/nfc-scan-devices", "-v"]).split("\n")
-    chip_line = [line for line in raw_lines if "chip:" in line][0]
+    raw_lines = check_output(["/usr/bin/nfc-scan-device", "-v"]).split("\n")
     try:
+        chip_line = [line for line in raw_lines if "chip:" in line][0]
         chip_name = chip_line.split(" ")[1]
         chip_firm = chip_line.split(" ")[2]
     except IndexError:
@@ -73,7 +73,7 @@ def get_uid_noblock(dummy=False):
                                    "-v"])
         iso_found = [line for line in raw_output.split("\n")
                      if "ISO14443A" in line]
-        num_found = iso_found.split(" ")[0]
+        num_found = iso_found[0].split("\n")[0]
         # Check for only one tag present
         if num_found != "1":
             uid_ascii = None
@@ -286,7 +286,7 @@ def main(stdscr):
     # Verify that reader exists, and setup GPIO pins
     firmware, board_name = initialize_nfc_reader(stdscr)
     if not (firmware and board_name):
-        msg = "Invalid firmware version and/or board type" \
+        msg = "Invalid firmware version and/or board type\n" \
               "Firmware: {} \n Board name: {}".format(firmware, board_name)
         error_message(stdscr, msg)
         raise RuntimeError("PN532 board is having issues.")
@@ -362,8 +362,12 @@ def main(stdscr):
 
 def shutdown():
     """Shutdown commands"""
-    _ = disable_relay(BOARD, OUT_PINS['laser'])
-    _ = disable_relay(BOARD, OUT_PINS['psu'])
+    try:
+        _ = disable_relay(BOARD, OUT_PINS['laser'])
+        _ = disable_relay(BOARD, OUT_PINS['psu'])
+    except AttributeError as ex:
+        print("Something went wrong shutting down: {}".format(ex))
+        print("The GPIO probably never even got initialized...")
     sys.exit(0)
 
 def handler(signum, frame):
