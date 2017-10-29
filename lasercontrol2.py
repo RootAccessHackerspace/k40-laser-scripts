@@ -260,6 +260,8 @@ def machine_status(stdscr, y_offset):
     x_location = [x*x_max/slices for x in range(1, slices+1)]
     pin_disabled = [GPIO.digitalRead(pin) for pin in OUT_PINS.itervalues()]
     # Print pin name and a number below it
+    stdscr.addstr(y_offset, x_max/3, "Press number to toggle status")
+    y_offset += 1
     enumerated_items = dict(enumerate(OUT_PINS))
     for place, item in enumerated_items.iteritems():
         start_x = x_location[place] - len(item)/2 - 1
@@ -346,7 +348,7 @@ def main(stdscr):
     stdscr.refresh()
 
     while True:
-        assignments = machine_status(stdscr, 15)
+        assignments = machine_status(stdscr, 14)
         stdscr.refresh()
         response = stdscr.getkey()
         try:
