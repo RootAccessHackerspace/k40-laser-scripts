@@ -1,0 +1,8 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=LaserControl
+Comment=Control the relay for the laser, PSU, and reset GRBL
+Exec=sudo /usr/sbin/lasercontrol
+Terminal=false
+Name[en_US]=LaserControl
