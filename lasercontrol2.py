@@ -71,7 +71,7 @@ def get_uid_noblock(dummy=False):
                                    "-v"])
         iso_found = [line for line in raw_output.split("\n")
                      if "ISO14443A" in line]
-        num_found = iso_found[0].split("\n")[0]
+        num_found = iso_found[0].split()[0]
         # Check for only one tag present
         if num_found != "1":
             uid_ascii = None
@@ -79,9 +79,9 @@ def get_uid_noblock(dummy=False):
             nfcid_line = [line for line in raw_output.split("\n")
                           if "NFCID" in line]
             # The UID will be after the colon
-            raw_uid = nfcid_line.split(":")[1]
-            uid_list = raw_uid.split(" ")
-            uid_ascii = "".join([x for x in uid_list if x != " "])
+            raw_uid = nfcid_line[0].split(":")[1]
+            uid_list = raw_uid.split()
+            uid_ascii = "".join([x for x in uid_list])
     return uid_ascii
 
 def get_uid_block(dummy=False):
@@ -129,8 +129,8 @@ def is_current_user(username):
 
 def get_user_realname():
     """Returns a string of the current user's real name"""
-    cur_uid = os.getuid()
-    gecos = pwd.getpwuid(cur_uid)[4]
+    cur_nam = os.getenv("SUDO_USER")
+    gecos = pwd.getpwnam(cur_nam)[4]
     real_name = gecos.split(",")[0]
     return real_name
 
