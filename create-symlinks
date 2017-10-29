@@ -2,3 +2,6 @@
 
 # laseruser.conf
 ln -sv /etc/laseruser.conf $(pwd)/laseruser.conf
+
+# Laser control
+ln -sv /usr/sbin/lasercontrol $(pwd)/lasercontrol
