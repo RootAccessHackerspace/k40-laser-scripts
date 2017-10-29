@@ -30,7 +30,8 @@ import wiringpi as GPIO
 ####---- Variables ----####
 # BCM pins for various functions
 ## SPI
-SPI = dict(cs=8, mosi=10, miso=9, sclk=11)
+### For reference, should we ever go back to using a python SPI protocol
+#SPI = dict(cs=8, mosi=10, miso=9, sclk=11)
 ## Relays and other outputs
 OUT_PINS = dict(laser=20, psu=21, grbl=27)
 ## Sensors and other inputs
