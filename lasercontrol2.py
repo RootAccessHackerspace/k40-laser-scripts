@@ -149,6 +149,7 @@ def gpio_setup(stdscr, quiet=True):
         # Actually try now
         try:
             GPIO.pinMode(pin, GPIO.OUTPUT)
+            GPIO.digitalWrite(pin, GPIO.HIGH)
         except NameError:
             message = "Invalid module defined for GPIO assignment"
             error_message(stdscr, message)
@@ -296,8 +297,6 @@ def main(stdscr):
     if not board_setup:
         error_message(stdscr, "GPIO pins failed to setup")
         raise RuntimeError("GPIO pins failed to setup")
-    _ = disable_relay(OUT_PINS['laser'])
-    _ = disable_relay(OUT_PINS['psu'])
 
     # Welcome, welcome, one and all...
     text_frame(intro, stdscr)
