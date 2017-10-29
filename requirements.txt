@@ -1,7 +1,4 @@
-Adafruit-GPIO==1.0.3
-Adafruit-PN532==1.2.1
-Adafruit-PureIO==0.2.1
-RPi.GPIO==0.6.3
-argparse==1.2.1
-spidev==3.2
-wsgiref==0.1.2
+pipdeptree==0.10.1
+pylint==1.7.4
+setuptools==5.5.1
+wiringpi==2.44.4
