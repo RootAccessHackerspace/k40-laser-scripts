@@ -26,8 +26,10 @@ import ttk
 
 try:
     import Tkinter as tk
+    import tkMessageBox as messagebox
 except ImportError:
     import tkinter as tk
+    import tkinter.messagebox as messagebox
 import wiringpi as GPIO
 
 ####---- Variables ----####
@@ -79,6 +81,7 @@ class MainWindow(tk.Frame):
     def __create_buttons(self):
         """Create GPIO gpio"""
         self.gpio.button_auth.grid(row=10, sticky="W")
+        self.gpio.button_auth.configure(command=self._authorize)
         self.gpio.button_psu.grid(row=20, sticky="W")
         self.gpio.button_laser.grid(row=30, sticky="W")
         self.gpio.button_reset_hard.grid(row=40, sticky="W")
@@ -87,7 +90,52 @@ class MainWindow(tk.Frame):
         self.gcode.button_pause.grid(column=20, row=10)
         self.gcode.button_stop.grid(column=30, row=10)
 
-
+    def _authorize(self):
+        """Authorize the user, allowing them to do other functions"""
+        firmware, name = initialize_nfc_reader()
+        if not firmware and not name:
+            messagebox.showerror("Unable to Authorize",
+                                 "The PN532 was unable to initialize")
+        retry = True
+        while retry:
+            uid = get_uid_noblock()
+            if not uid:
+                retry = messagebox.askretrycancel("No UID found",
+                                                  ("Could not find NFC tag."
+                                                   "Try again?"))
+            else:
+                retry = False
+        if uid:
+            verified = verify_uid(uid)
+            if not verified:
+                messagebox.showerror("Not Authorized",
+                                     ("You do not have authorization to "
+                                      "use this device."))
+        try:
+            username = get_user_uid(uid)
+            realname = get_user_realname()
+        except BaseException, ex:
+            messagebox.showerror("Error", ex)
+        current_user = is_current_user(username)
+        if not current_user:
+            messagebox.showerror("Incorrect user",
+                                 ("The provided NFC tag is not for the "
+                                  "current user."))
+        if current_user and uid and verified:
+            try:
+                board_setup = gpio_setup()
+            except BaseException, ex:
+                messagebox.showerror("GPIO Error", ex)
+            if board_setup:
+                _ = disable_relay(OUT_PINS['laser'])
+                _ = disable_relay(OUT_PINS['psu'])
+            # Let the GPIO buttons actually do something!
+            self.gpio.button_laser.configure(command=lambda: switch_pin(OUT_PINS['laser']))
+            self.gpio.button_psu.configure(command=lambda: switch_pin(OUT_PINS['psu']))
+            self.gpio.button_reset_hard.configure(command=lambda: toggle_pin(OUT_PINS['grbl']))
+            messagebox.showinfo("Done", "Everything is setup, {}".format(realname))
+        else:
+            messagebox.showerror("Error", "Something went wrong")
 
 ####---- Generic Functions ----####
 ### NFC-related
@@ -166,7 +214,7 @@ def verify_uid(uid):
     return _dummy_verify_uid(uid) # No API to use yet for users
 
 def get_user_uid(uid, cuid_file="/etc/pam_nfc.conf", dummy=False):
-    """Takes in a UID string, returns string of user name."""
+    """Takes in a UID string, returns string of username."""
     if not dummy:
         if os.getuid() != 0:
             raise OSError("Check your priviledge")
@@ -194,29 +242,19 @@ def get_user_realname():
     return real_name
 
 ### GPIO-related
-def gpio_setup(stdscr, quiet=True):
+def gpio_setup():
     """Set up GPIO for use, returns True/False if all setup successful
 
     Not only gets the GPIO for the board, but also sets the appropriate pins
     for output and input."""
     GPIO.wiringPiSetupGpio() # BCM mode
     message = None
-    for item, pin in OUT_PINS.iteritems():
-        if not quiet:
-            error_message(stdscr, "Setting pin {} to OUT".format(pin))
-        # Actually try now
-        try:
+    try:
+        for item, pin in OUT_PINS.iteritems():
             GPIO.pinMode(pin, GPIO.OUTPUT)
             GPIO.digitalWrite(pin, GPIO.HIGH)
-        except NameError:
-            message = "Invalid module defined for GPIO assignment"
-            error_message(stdscr, message)
-        except ValueError:
-            message = "Invalid pin value ({})".format(pin)
-            error_message(stdscr, message)
-        except AttributeError:
-            message = "Invalid GPIO assignment for {}".format(item)
-            error_message(stdscr, message)
+    except BaseException, message:
+        raise message
     if message:
         board = False
     else:
