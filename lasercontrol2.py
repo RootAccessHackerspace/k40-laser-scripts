@@ -40,6 +40,9 @@ OUT_PINS = dict(laser=20, psu=21, grbl=27)
 ## Sensors and other inputs
 IN_PINS = dict() # None currently
 
+# Directory where the gcode files will be stored from Visicut
+GDIR = "/home/users/Public"
+
 
 ####---- Classes ----####
 class MainWindow(tk.Frame):
@@ -75,10 +78,10 @@ class MainWindow(tk.Frame):
 
     def __create_buttons(self):
         """Create GPIO gpio"""
-        self.gpio.button_auth.grid(row=10)
-        self.gpio.button_psu.grid(row=20)
-        self.gpio.button_laser.grid(row=30)
-        self.gpio.button_reset_hard.grid(row=40)
+        self.gpio.button_auth.grid(row=10, sticky="W")
+        self.gpio.button_psu.grid(row=20, sticky="W")
+        self.gpio.button_laser.grid(row=30, sticky="W")
+        self.gpio.button_reset_hard.grid(row=40, sticky="W")
 
         self.gcode.button_start.grid(column=10, row=10)
         self.gcode.button_pause.grid(column=20, row=10)
