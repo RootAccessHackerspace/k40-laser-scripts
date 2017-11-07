@@ -56,7 +56,9 @@ class MainWindow(tk.Frame):
         self.root.resizable(width=False, height=False)
         self.grid()
 
-        self.gpio = tk.Frame(self.root)
+        self.gpio = ttk.Labelframe(self.root,
+                                   text="GPIO Control",
+                                   padding=5)
         self.gpio.grid(column=10, row=0, sticky="E", ipadx=10)
 
         self.gcode = tk.Frame(self.root)
