@@ -284,11 +284,6 @@ def toggle_pin(pin):
     switch_pin(pin)
 
 ####---- Text functions ----####
-def error_message(_, __):
-    """Deal with error messages"""
-    #TODO
-    pass
-
 def machine_status():
     """Something with the machine status"""
     #TODO
@@ -300,6 +295,7 @@ def main():
     #TODO
     root = tk.Tk()
     MainWindow(root)
+    root.protocol("WM_DELETE_WINDOW", lambda: handler_gui(root))
     root.mainloop()
 
 def shutdown():
@@ -312,16 +308,24 @@ def shutdown():
         print("The GPIO probably never even got initialized...")
     sys.exit(0)
 
-def handler(signum, frame):
+def handler_cli(signum, frame):
     """Signal handler"""
     print("Signal {}".format(signum))
     _ = frame
     shutdown()
 
+def handler_gui(root):
+    message = ("Are you sure you want to quit?\n"
+               "Authorization will be lost, and the power supply & "
+               "laser will be turned off.")
+    if messagebox.askokcancel("Quit", message):
+        root.destroy()
+        shutdown()
+
 ####---- BODY ----####
 if __name__ == '__main__':
-    signal.signal(signal.SIGHUP, handler)
-    signal.signal(signal.SIGINT, handler)
-    signal.signal(signal.SIGTERM, handler)
+    signal.signal(signal.SIGHUP, handler_cli)
+    signal.signal(signal.SIGINT, handler_cli)
+    signal.signal(signal.SIGTERM, handler_cli)
 
     main()
