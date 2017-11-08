@@ -67,7 +67,8 @@ class MainWindow(tk.Frame):
         self.gpio.button_auth = ttk.Button(self.gpio, text="Authorize")
         self.gpio.button_psu = ttk.Button(self.gpio, text="Power Supply")
         self.gpio.button_laser = ttk.Button(self.gpio, text="Laser")
-        self.gpio.button_reset_hard = ttk.Button(self.gpio, text="Hard Reset")
+        self.gpio.button_reset_hard = ttk.Button(self.gpio,
+                                                 text="Hard Reset")
 
         self.gcode.button_start = ttk.Button(self.gcode, text="Start")
         self.gcode.button_pause = ttk.Button(self.gcode, text="Pause")
@@ -132,10 +133,14 @@ class MainWindow(tk.Frame):
                 _ = disable_relay(OUT_PINS['laser'])
                 _ = disable_relay(OUT_PINS['psu'])
             # Let the GPIO buttons actually do something!
-            self.gpio.button_laser.configure(command=lambda: switch_pin(OUT_PINS['laser']))
-            self.gpio.button_psu.configure(command=lambda: switch_pin(OUT_PINS['psu']))
-            self.gpio.button_reset_hard.configure(command=lambda: toggle_pin(OUT_PINS['grbl']))
-            messagebox.showinfo("Done", "Everything is setup, {}".format(realname))
+            self.gpio.button_laser.configure(command=(
+                lambda: switch_pin(OUT_PINS['laser'])))
+            self.gpio.button_psu.configure(command=(
+                lambda: switch_pin(OUT_PINS['psu'])))
+            self.gpio.button_reset_hard.configure(command=(
+                lambda: toggle_pin(OUT_PINS['grbl'])))
+            messagebox.showinfo("Done",
+                                "Everything is setup, {}".format(realname))
         else:
             messagebox.showerror("Error", "Something went wrong")
 
@@ -317,6 +322,7 @@ def handler_cli(signum, frame):
     shutdown()
 
 def handler_gui(root):
+    """Signal handler for Tkinter"""
     message = ("Are you sure you want to quit?\n"
                "Authorization will be lost, and the power supply & "
                "laser will be turned off.")
