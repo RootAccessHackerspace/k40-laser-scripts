@@ -290,6 +290,14 @@ def disable_relay(pin, disabled=True):
         GPIO.digitalWrite(pin, GPIO.LOW)
     return GPIO.digitalRead(pin)
 
+def relay_state(pin):
+    """Take in pin, return string state of the relay"""
+    disabled = GPIO.digitalRead(pin)
+    state = "off"
+    if not disabled:
+        state = "on"
+    return state
+
 def switch_pin(pin):
     """Take pin, switch pin state"""
     cur_state = GPIO.digitalRead(pin)
