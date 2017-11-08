@@ -63,7 +63,8 @@ class MainWindow(tk.Frame):
                                    padding=5)
         self.gpio.grid(column=10, row=0, sticky="E", ipadx=10)
 
-        self.gcode = tk.Frame(self.root)
+        self.gcode = ttk.Labelframe(self.root,
+                                    text="Gcode Control")
         self.gcode.grid(column=0, row=0, sticky="W", ipadx=10)
         ### GPIO buttons
         self.gpio.button_auth = ttk.Button(self.gpio, text="Authorize")
@@ -79,9 +80,21 @@ class MainWindow(tk.Frame):
         self.gpio.label_laser = tk.Label(self.gpio,
                                          textvariable=self.gpio.laser_label)
         ### GCODE buttons
-        self.gcode.button_start = ttk.Button(self.gcode, text="Start")
-        self.gcode.button_pause = ttk.Button(self.gcode, text="Pause")
-        self.gcode.button_stop = ttk.Button(self.gcode, text="Stop")
+        self.gcode.image_play = tk.PhotoImage(file="button_play.gif")
+        self.gcode.button_start = ttk.Button(self.gcode,
+                                             text="Start",
+                                             image=self.gcode.image_play,
+                                             compound="top")
+        self.gcode.image_pause = tk.PhotoImage(file="button_pause.gif")
+        self.gcode.button_pause = ttk.Button(self.gcode,
+                                             text="Pause",
+                                             image=self.gcode.image_pause,
+                                             compound="top")
+        self.gcode.image_stop = tk.PhotoImage(file="button_stop.gif")
+        self.gcode.button_stop = ttk.Button(self.gcode,
+                                            text="Stop",
+                                            image=self.gcode.image_stop,
+                                            compound="top")
 
         self.__init_window()
 
@@ -91,7 +104,8 @@ class MainWindow(tk.Frame):
         self.__create_buttons()
 
     def __create_buttons(self):
-        """Create GPIO gpio"""
+        """Make all buttons visible and set appropriate values"""
+        # GPIO buttons
         self.gpio.button_auth.grid(row=10, column=10, sticky="W")
         self.gpio.button_auth.configure(command=self._authorize)
 
@@ -112,6 +126,7 @@ class MainWindow(tk.Frame):
             lambda: toggle_pin(OUT_PINS['grbl'])))
         self.gpio.button_reset_hard.state(["disabled"])
 
+        # Gcode buttons
         self.gcode.button_start.grid(column=10, row=10)
         self.gcode.button_start.state(["disabled"])
         self.gcode.button_pause.grid(column=20, row=10)
