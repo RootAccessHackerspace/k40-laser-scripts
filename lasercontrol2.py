@@ -50,12 +50,14 @@ GDIR = "/home/users/Public"
 class MainWindow(tk.Frame):
     """Main window"""
     def __init__(self, root, *args, **kwargs):
+        ## Main window
         tk.Frame.__init__(self, root, *args, **kwargs)
         self.root = root
         self.root.geometry("400x200+0-5")
         self.root.resizable(width=False, height=False)
         self.grid()
 
+        ## Sub-frame for just the GPIO controls
         self.gpio = ttk.Labelframe(self.root,
                                    text="GPIO Control",
                                    padding=5)
@@ -63,13 +65,20 @@ class MainWindow(tk.Frame):
 
         self.gcode = tk.Frame(self.root)
         self.gcode.grid(column=0, row=0, sticky="W", ipadx=10)
-
+        ### GPIO buttons
         self.gpio.button_auth = ttk.Button(self.gpio, text="Authorize")
         self.gpio.button_psu = ttk.Button(self.gpio, text="Power Supply")
         self.gpio.button_laser = ttk.Button(self.gpio, text="Laser")
         self.gpio.button_reset_hard = ttk.Button(self.gpio,
                                                  text="Hard Reset")
-
+        #### Label for the state of the laser and PSU
+        self.gpio.psu_label = tk.StringVar()
+        self.gpio.label_psu = tk.Label(self.gpio,
+                                       textvariable=self.gpio.psu_label)
+        self.gpio.laser_label = tk.StringVar()
+        self.gpio.label_laser = tk.Label(self.gpio,
+                                         textvariable=self.gpio.laser_label)
+        ### GCODE buttons
         self.gcode.button_start = ttk.Button(self.gcode, text="Start")
         self.gcode.button_pause = ttk.Button(self.gcode, text="Pause")
         self.gcode.button_stop = ttk.Button(self.gcode, text="Stop")
@@ -86,15 +95,17 @@ class MainWindow(tk.Frame):
         self.gpio.button_auth.grid(row=10, column=10, sticky="W")
         self.gpio.button_auth.configure(command=self._authorize)
 
-        self.gpio.button_laser.grid(row=30, column=10, sticky="W")
-        self.gpio.button_laser.configure(command=(
-            lambda: switch_pin(OUT_PINS['laser'])))
-        self.gpio.button_laser.state(["disabled"])
-
         self.gpio.button_psu.grid(row=20, column=10, sticky="W")
         self.gpio.button_psu.configure(command=(
-            lambda: switch_pin(OUT_PINS['psu'])))
+            lambda: self._switch_pin('psu')))
         self.gpio.button_psu.state(["disabled"])
+        self.gpio.label_psu.grid(row=20, column=20, sticky="W")
+
+        self.gpio.button_laser.grid(row=30, column=10, sticky="W")
+        self.gpio.button_laser.configure(command=(
+            lambda: self._switch_pin('laser')))
+        self.gpio.button_laser.state(["disabled"])
+        self.gpio.label_laser.grid(row=30, column=20, sticky="W")
 
         self.gpio.button_reset_hard.grid(row=40, column=10, sticky="W")
         self.gpio.button_reset_hard.configure(command=(
@@ -107,6 +118,12 @@ class MainWindow(tk.Frame):
         self.gcode.button_pause.state(["disabled"])
         self.gcode.button_stop.grid(column=30, row=10)
         self.gcode.button_stop.state(["disabled"])
+
+    def _switch_pin(self, item):
+        pin = OUT_PINS[item]
+        switch_pin(pin)
+        self.gpio.laser_label.set(relay_state(OUT_PINS['laser']))
+        self.gpio.psu_label.set(relay_state(OUT_PINS['psu']))
 
     def _authorize(self):
         """Authorize the user, allowing them to do other functions"""
@@ -149,7 +166,9 @@ class MainWindow(tk.Frame):
                 _ = disable_relay(OUT_PINS['psu'])
             # Let the GPIO buttons actually do something!
             self.gpio.button_psu.state(["!disabled"])
+            self.gpio.psu_label.set(relay_state(OUT_PINS['psu']))
             self.gpio.button_laser.state(["!disabled"])
+            self.gpio.laser_label.set(relay_state(OUT_PINS['laser']))
             self.gpio.button_reset_hard.state(["!disabled"])
             messagebox.showinfo("Done",
                                 "Everything is setup, {}".format(realname))
