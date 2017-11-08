@@ -83,15 +83,30 @@ class MainWindow(tk.Frame):
 
     def __create_buttons(self):
         """Create GPIO gpio"""
-        self.gpio.button_auth.grid(row=10, sticky="W")
+        self.gpio.button_auth.grid(row=10, column=10, sticky="W")
         self.gpio.button_auth.configure(command=self._authorize)
-        self.gpio.button_psu.grid(row=20, sticky="W")
-        self.gpio.button_laser.grid(row=30, sticky="W")
-        self.gpio.button_reset_hard.grid(row=40, sticky="W")
+
+        self.gpio.button_laser.grid(row=30, column=10, sticky="W")
+        self.gpio.button_laser.configure(command=(
+            lambda: switch_pin(OUT_PINS['laser'])))
+        self.gpio.button_laser.state(["disabled"])
+
+        self.gpio.button_psu.grid(row=20, column=10, sticky="W")
+        self.gpio.button_psu.configure(command=(
+            lambda: switch_pin(OUT_PINS['psu'])))
+        self.gpio.button_psu.state(["disabled"])
+
+        self.gpio.button_reset_hard.grid(row=40, column=10, sticky="W")
+        self.gpio.button_reset_hard.configure(command=(
+            lambda: toggle_pin(OUT_PINS['grbl'])))
+        self.gpio.button_reset_hard.state(["disabled"])
 
         self.gcode.button_start.grid(column=10, row=10)
+        self.gcode.button_start.state(["disabled"])
         self.gcode.button_pause.grid(column=20, row=10)
+        self.gcode.button_pause.state(["disabled"])
         self.gcode.button_stop.grid(column=30, row=10)
+        self.gcode.button_stop.state(["disabled"])
 
     def _authorize(self):
         """Authorize the user, allowing them to do other functions"""
@@ -133,12 +148,9 @@ class MainWindow(tk.Frame):
                 _ = disable_relay(OUT_PINS['laser'])
                 _ = disable_relay(OUT_PINS['psu'])
             # Let the GPIO buttons actually do something!
-            self.gpio.button_laser.configure(command=(
-                lambda: switch_pin(OUT_PINS['laser'])))
-            self.gpio.button_psu.configure(command=(
-                lambda: switch_pin(OUT_PINS['psu'])))
-            self.gpio.button_reset_hard.configure(command=(
-                lambda: toggle_pin(OUT_PINS['grbl'])))
+            self.gpio.button_psu.state(["!disabled"])
+            self.gpio.button_laser.state(["!disabled"])
+            self.gpio.button_reset_hard.state(["!disabled"])
             messagebox.showinfo("Done",
                                 "Everything is setup, {}".format(realname))
         else:
