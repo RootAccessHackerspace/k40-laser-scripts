@@ -7,11 +7,14 @@ This script allows for a user to control the laser and PSU.
 This script will grab the UID from an NFC tag, verify that the UID is granted
 access to the laser, then let the user actually do so.
 """
-
-
-####---- Imports ----####
 from __future__ import print_function, unicode_literals
 
+
+__author__ = "Dylan Armitage"
+__email__ = "d.armitage89@gmail.com"
+__license__ = "MIT"
+
+####---- Imports ----####
 from subprocess import check_output
 
 import sys
@@ -105,6 +108,9 @@ class MainWindow(tk.Frame):
         self.conn.status = tk.StringVar()
         self.conn.status_display = tk.Label(self.conn,
                                             textvariable=self.conn.status)
+        self.conn.connect_b = tk.StringVar()
+        self.conn.button_conn = ttk.Button(self.conn,
+                                           textvariable=self.conn.connect_b)
         self.conn.button_home = ttk.Button(self.conn,
                                            text="Home")
         self.conn.button_reset_soft = ttk.Button(self.conn,
@@ -151,8 +157,12 @@ class MainWindow(tk.Frame):
         self.gcode.button_stop.state(["disabled"])
 
         # Connection buttons
-        self.conn.label_status.grid(column=20, row=5)
-        self.conn.status_display.grid(column=21, row=5, columnspan=19)
+        self.conn.label_status.grid(column=30, row=5)
+        self.conn.status_display.grid(column=31, row=5, columnspan=19)
+        self.conn.status.set("Not Connected")
+        self.conn.connect_b.set("Connect")
+        self.conn.button_conn.grid(column=20, row=5)
+        self.conn.button_conn.state(["disabled"])
         self.conn.button_home.grid(column=20, row=10)
         self.conn.button_home.state(["disabled"])
         self.conn.button_reset_soft.grid(column=30, row=10)
