@@ -26,6 +26,8 @@ import random
 import crypt
 import ttk
 
+from Sender import Sender
+
 try:
     import Tkinter as tk
     import tkMessageBox as messagebox
@@ -52,11 +54,13 @@ GRBL_SERIAL = "/dev/ttyAMA0"
 
 
 ####---- Classes ----####
-class MainWindow(tk.Frame):
+class MainWindow(tk.Frame, Sender):
     """Main window"""
+    # pylint: disable=too-many-ancestors
     def __init__(self, root, *args, **kwargs):
         ## Main window
         tk.Frame.__init__(self, root, *args, **kwargs)
+        Sender.__init__(self)
         self.root = root
         self.root.geometry("400x200+0-5")
         self.root.resizable(width=False, height=False)
@@ -116,7 +120,7 @@ class MainWindow(tk.Frame):
         self.conn.button_reset_soft = ttk.Button(self.conn,
                                                  text="Soft Reset")
         self.conn.button_unlock = ttk.Button(self.conn,
-                                             text="Rest")
+                                             text="Unlock")
 
         self.__init_window()
 
@@ -161,6 +165,7 @@ class MainWindow(tk.Frame):
         self.conn.status_display.grid(column=31, row=5, columnspan=19)
         self.conn.status.set("Not Connected")
         self.conn.connect_b.set("Connect")
+        self.conn.button_conn.configure(command=lambda: self.open(GRBL_SERIAL))
         self.conn.button_conn.grid(column=20, row=5)
         self.conn.button_conn.state(["disabled"])
         self.conn.button_home.grid(column=20, row=10)
@@ -221,10 +226,52 @@ class MainWindow(tk.Frame):
             self.gpio.button_laser.state(["!disabled"])
             self.gpio.laser_label.set(relay_state(OUT_PINS['laser']))
             self.gpio.button_reset_hard.state(["!disabled"])
+            self.conn.button_conn.state(["!disabled"])
             messagebox.showinfo("Done",
                                 "Everything is setup, {}".format(realname))
         else:
             messagebox.showerror("Error", "Something went wrong")
+
+    def _activate_conn(self):
+        """Enable the connection buttons"""
+        self.conn.button_home.configure(command=self.home)
+        self.conn.button_home.state(["!disabled"])
+        self.conn.button_reset_soft.configure(command=Sender.soft_reset)
+        self.conn.button_reset_soft.state(["!disabled"])
+        self.conn.button_unlock.configure(command=Sender.unlock)
+        self.conn.button_unlock.state(["!disabled"])
+
+    def _deactivate_conn(self):
+        """Enable the connection buttons"""
+        self.conn.button_home.state(["disabled"])
+        self.conn.button_reset_soft.state(["disabled"])
+        self.conn.button_unlock.state(["disabled"])
+
+    def open(self, device):
+        """Open serial device"""
+        try:
+            status = Sender.open_serial(self, device)
+            self._activate_conn()
+            self.conn.button_conn.configure(command=self.close)
+            self.conn.status.set("Connected")
+            self.conn.connect_b.set("Disconnect")
+            return status
+        except BaseException:
+            self.serial = None
+            self.process = None
+            messagebox.showerror("Error Opening serial", sys.exc_info()[1])
+        return False
+
+    def close(self):
+        """Close serial device"""
+        Sender.close_serial(self)
+        self._deactivate_conn()
+        self.conn.button_conn.configure(command=lambda: self.open(GRBL_SERIAL))
+        self.conn.status.set("Not Connected")
+        self.conn.connect_b.set("Connect")
+
+    def home(self):
+        return Sender.home(self)
 
 ####---- Generic Functions ----####
 ### NFC-related
