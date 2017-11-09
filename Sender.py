@@ -182,7 +182,6 @@ class Sender(object):
             self.stop_run()
         except BaseException:
             pass
-        self.process.join()
         self.process = None
         try:
             self.serial.close()
