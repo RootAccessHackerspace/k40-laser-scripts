@@ -19,10 +19,10 @@ import os
 import signal
 import pwd
 import time
-#import textwrap
 import random
 import crypt
 import ttk
+import serial
 
 try:
     import Tkinter as tk
@@ -45,6 +45,9 @@ IN_PINS = dict() # None currently
 # Directory where the gcode files will be stored from Visicut
 GDIR = "/home/users/Public"
 
+# GRBL serial port
+GRBL_SERIAL = "/dev/ttyAMA0"
+
 
 ####---- Classes ----####
 class MainWindow(tk.Frame):
@@ -61,11 +64,14 @@ class MainWindow(tk.Frame):
         self.gpio = ttk.Labelframe(self.root,
                                    text="GPIO Control",
                                    padding=5)
-        self.gpio.grid(column=10, row=0, sticky="E", ipadx=10)
-
+        self.gpio.grid(column=20, row=50, sticky="E", ipadx=5)
+        ## Sub-frame for the GCode controls
         self.gcode = ttk.Labelframe(self.root,
                                     text="Gcode Control")
-        self.gcode.grid(column=0, row=0, sticky="W", ipadx=10)
+        self.gcode.grid(column=10, row=50, sticky="W", ipadx=5)
+        ## Sub-frame for "status" controls
+        self.conn = ttk.Frame(self.root)
+        self.conn.grid(column=10, row=25, sticky="N")
         ### GPIO buttons
         self.gpio.button_auth = ttk.Button(self.gpio, text="Authorize")
         self.gpio.button_psu = ttk.Button(self.gpio, text="Power Supply")
@@ -95,6 +101,17 @@ class MainWindow(tk.Frame):
                                             text="Stop",
                                             image=self.gcode.image_stop,
                                             compound="top")
+        ### Connection/Status buttons and label
+        self.conn.label_status = tk.Label(self.conn, text="Status:")
+        self.conn.status = tk.StringVar()
+        self.conn.status_display = tk.Label(self.conn,
+                                            textvariable=self.conn.status)
+        self.conn.button_home = ttk.Button(self.conn,
+                                           text="Home")
+        self.conn.button_reset_soft = ttk.Button(self.conn,
+                                                 text="Soft Reset")
+        self.conn.button_unlock = ttk.Button(self.conn,
+                                             text="Rest")
 
         self.__init_window()
 
@@ -133,6 +150,16 @@ class MainWindow(tk.Frame):
         self.gcode.button_pause.state(["disabled"])
         self.gcode.button_stop.grid(column=30, row=10)
         self.gcode.button_stop.state(["disabled"])
+
+        # Connection buttons
+        self.conn.label_status.grid(column=20, row=5)
+        self.conn.status_display.grid(column=21, row=5, columnspan=19)
+        self.conn.button_home.grid(column=20, row=10)
+        self.conn.button_home.state(["disabled"])
+        self.conn.button_reset_soft.grid(column=30, row=10)
+        self.conn.button_reset_soft.state(["disabled"])
+        self.conn.button_unlock.grid(column=40, row=10)
+        self.conn.button_unlock.state(["disabled"])
 
     def _switch_pin(self, item):
         pin = OUT_PINS[item]
