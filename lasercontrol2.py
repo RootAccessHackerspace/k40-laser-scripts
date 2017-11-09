@@ -22,7 +22,6 @@ import time
 import random
 import crypt
 import ttk
-import serial
 
 try:
     import Tkinter as tk
@@ -330,11 +329,11 @@ def gpio_setup():
     GPIO.wiringPiSetupGpio() # BCM mode
     message = None
     try:
-        for item, pin in OUT_PINS.iteritems():
+        for _, pin in OUT_PINS.iteritems():
             GPIO.pinMode(pin, GPIO.OUTPUT)
             GPIO.digitalWrite(pin, GPIO.HIGH)
     except BaseException, message:
-        raise message
+        raise
     if message:
         board = False
     else:
@@ -371,16 +370,9 @@ def toggle_pin(pin):
     time.sleep(0.25)
     switch_pin(pin)
 
-####---- Text functions ----####
-def machine_status():
-    """Something with the machine status"""
-    #TODO
-    pass
-
 ####---- MAIN ----####
 def main():
     """Main function"""
-    #TODO
     root = tk.Tk()
     MainWindow(root)
     root.protocol("WM_DELETE_WINDOW", lambda: handler_gui(root))
