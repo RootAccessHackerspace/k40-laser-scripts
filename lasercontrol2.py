@@ -236,9 +236,9 @@ class MainWindow(tk.Frame, Sender):
         """Enable the connection buttons"""
         self.conn.button_home.configure(command=self.home)
         self.conn.button_home.state(["!disabled"])
-        self.conn.button_reset_soft.configure(command=Sender.soft_reset)
+        self.conn.button_reset_soft.configure(command=self.soft_reset)
         self.conn.button_reset_soft.state(["!disabled"])
-        self.conn.button_unlock.configure(command=Sender.unlock)
+        self.conn.button_unlock.configure(command=self.unlock)
         self.conn.button_unlock.state(["!disabled"])
 
     def _deactivate_conn(self):
@@ -272,6 +272,12 @@ class MainWindow(tk.Frame, Sender):
 
     def home(self):
         return Sender.home(self)
+
+    def soft_reset(self):
+        return Sender.soft_reset(self)
+
+    def unlock(self):
+        return Sender.unlock(self)
 
 ####---- Generic Functions ----####
 ### NFC-related
