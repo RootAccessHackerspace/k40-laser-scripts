@@ -50,6 +50,121 @@ class Sender(object):
         # will remain the same.
         self._sum_command_lens = 0
 
+    def open_serial(self, device):
+        """Open serial port"""
+        self.serial = serial.serial_for_url(device,
+                                            baudrate=115200,
+                                            bytesize=serial.EIGHTBITS,
+                                            parity=serial.PARITY_NONE,
+                                            stopbits=serial.STOPBITS_ONE,
+                                            timeout=SERIAL_TIMEOUT,
+                                            xonxoff=False,
+                                            rtscts=False)
+        # Toggle DTR to reset the arduino
+        try:
+            self.serial.setDTR(0)
+            time.sleep(1)
+            self.serial.setDTR(1)
+            time.sleep(1)
+        except IOError:
+            pass
+        self.serial.write(b"\n\n")
+        self.process = Process(target=self.serial_io)
+        self.process.start()
+        return True
+
+    def close_serial(self):
+        """Close serial port"""
+        if self.serial is None:
+            return
+        try:
+            self.stop_run()
+        except BaseException:
+            pass
+        self.process = None
+        try:
+            self.serial.close()
+        except BaseException:
+            raise
+        self.serial = None
+        return True
+
+    def stop_run(self):
+        """Stop the current run of Gcode"""
+        self.pause()
+        self._stop = True
+        self.purge_grbl()
+
+    def purge_grbl(self):
+        """Purge the buffer of grbl"""
+        self.serial.write(b"!") # Immediately pause
+        self.serial.flush()
+        time.sleep(1)
+        self.soft_reset()
+        self.unlock()
+        self.run_ended()
+
+    def run_ended(self):
+        """Called when run is finished"""
+        if self.running:
+            self.log.put(("Run ended", datetime.datetime.now()))
+
+        self._pause = False
+        self.running = False
+
+    def soft_reset(self):
+        """Send GRBL reset command"""
+        if self.serial:
+            self.serial.write(b"\030")
+
+    def unlock(self):
+        """Send GRBL unlock command"""
+        self.send_gcode("$X")
+
+    def home(self):
+        """Send GRBL home command"""
+        self.send_gcode("$H")
+
+    def send_gcode(self, command):
+        """Send GRBL a Gcode/command line"""
+        # Do nothing if not actually up
+        if self.serial and not self.running:
+            self.queue.put(command+"\n")
+
+    def empty_queue(self):
+        """Clear the queue"""
+        while self.queue.qsize() > 0:
+            try:
+                self.queue.get_nowait()
+            except BaseException:
+                break
+
+    def init_run(self):
+        """Initialize a gcode run"""
+        self._pause = False
+        self.running = True
+        self.empty_queue()
+        time.sleep(1) # Give everything a bit of time
+
+    def pause(self):
+        """Pause run"""
+        if self.serial is None:
+            return
+        if self._pause:
+            self.resume()
+        else:
+            self.serial.write(b"!")
+            self.serial.flush()
+            self._pause = True
+
+    def resume(self):
+        """Resume a run"""
+        if self.serial is None:
+            return
+        self.serial.write(b"~")
+        self.serial.flush()
+        self._pause = False
+
     def serial_io(self):
         """Process to perform I/O on GRBL"""
         # pylint: disable=too-many-branches,too-many-statements
@@ -149,122 +264,3 @@ class Sender(object):
                     command_pipe.append(to_send)
                     command_lens.append(len(to_send))
                     t_state = t_curr
-
-
-    def open_serial(self, device):
-        """Open serial port"""
-        self.serial = serial.serial_for_url(device,
-                                            baudrate=115200,
-                                            bytesize=serial.EIGHTBITS,
-                                            parity=serial.PARITY_NONE,
-                                            stopbits=serial.STOPBITS_ONE,
-                                            timeout=SERIAL_TIMEOUT,
-                                            xonxoff=False,
-                                            rtscts=False)
-        # Toggle DTR to reset the arduino
-        try:
-            self.serial.setDTR(0)
-            time.sleep(1)
-            self.serial.setDTR(1)
-            time.sleep(1)
-        except IOError:
-            pass
-        self.serial.write(b"\n\n")
-        self.process = Process(target=self.serial_io)
-        self.process.start()
-        return True
-
-    def close_serial(self):
-        """Close serial port"""
-        if self.serial is None:
-            return
-        try:
-            self.stop_run()
-        except BaseException:
-            pass
-        self.process = None
-        try:
-            self.serial.close()
-        except BaseException:
-            raise
-        self.serial = None
-        return True
-
-    def stop_run(self):
-        """Stop the current run of Gcode"""
-        self.pause()
-        self._stop = True
-        self.purge_grbl()
-
-    def purge_grbl(self):
-        """Purge the buffer of grbl"""
-        self.serial.write(b"!") # Immediately pause
-        self.serial.flush()
-        time.sleep(1)
-        self.soft_reset()
-        self.unlock()
-        self.run_ended()
-
-    def run_ended(self):
-        """Called when run is finished"""
-        if self.running:
-            self.log.put(("Run ended", datetime.datetime.now()))
-
-        self._pause = False
-        self.running = False
-
-    def soft_reset(self):
-        """Send GRBL reset command"""
-        if self.serial:
-            self.serial.write(b"\030")
-
-    def unlock(self):
-        """Send GRBL unlock command"""
-        self.send_gcode("$X")
-
-    def home(self):
-        """Send GRBL home command"""
-        self.send_gcode("$H")
-
-    def send_gcode(self, command):
-        """Send GRBL a Gcode/command line"""
-        # Do nothing if not actually up
-        if self.serial and not self.running:
-            if isinstance(command, tuple):
-                self.queue.put(command)
-            else:
-                self.queue.put(command+"\n")
-
-    def empty_queue(self):
-        """Clear the queue"""
-        while self.queue.qsize() > 0:
-            try:
-                self.queue.get_nowait()
-            except BaseException:
-                break
-
-    def init_run(self):
-        """Initialize a gcode run"""
-        self._pause = False
-        self.running = True
-        self.empty_queue()
-        time.sleep(1) # Give everything a bit of time
-
-    def pause(self):
-        """Pause run"""
-        if self.serial is None:
-            return
-        if self._pause:
-            self.resume()
-        else:
-            self.serial.write(b"!")
-            self.serial.flush()
-            self._pause = True
-
-    def resume(self):
-        """Resume a run"""
-        if self.serial is None:
-            return
-        self.serial.write(b"~")
-        self.serial.flush()
-        self._pause = False
