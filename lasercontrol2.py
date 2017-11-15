@@ -279,6 +279,28 @@ class MainWindow(tk.Frame, Sender):
     def unlock(self):
         return Sender.unlock(self)
 
+    def run(self, lines=None):
+        """Send gcode file to the laser"""
+        if self.serial is None:
+            messagebox.showerror("Serial Error", "GRBL is not connected")
+            return
+        if self.running:
+            if self._pause:
+                self.resume()
+                return
+            messagebox.showerror("Currently running",
+                                 "Please stop current job first.")
+            return
+        self.init_run()
+        if lines is not None:
+            for line in lines:
+                if line is not None:
+                    if isinstance(line, (str, unicode)):
+                        self.queue.put(line+"\n")
+                    else:
+                        self.queue.put(line)
+        self.queue.put(("WAIT",))
+
 ####---- Generic Functions ----####
 ### NFC-related
 def initialize_nfc_reader():
