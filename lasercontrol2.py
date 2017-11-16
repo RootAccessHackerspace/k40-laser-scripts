@@ -345,9 +345,12 @@ class MainWindow(tk.Frame, Sender):
             for line in lines:
                 if line is not None:
                     if isinstance(line, (str, unicode)):
+                        self.log.put(("Queued", line))
                         self.queue.put(line+"\n")
                     else:
+                        self.log.put(("Queued", line))
                         self.queue.put(line)
+        self.log.put(("Queued", "WAIT"))
         self.queue.put(("WAIT",))
 
     def destroy(self):

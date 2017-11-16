@@ -72,6 +72,7 @@ class Sender(object):
         self.serial.write(b"\n\n")
         self.process = Process(target=self.serial_io)
         self.process.start()
+        self.log.put(("Opening", str(datetime.datetime.now())))
         return True
 
     def close_serial(self):
@@ -82,6 +83,7 @@ class Sender(object):
             self.stop_run()
         except BaseException:
             pass
+        self.log.put(("Closing", str(datetime.datetime.now())))
         self.process = None
         try:
             self.serial.close()
@@ -97,6 +99,7 @@ class Sender(object):
         self.pause()
         self._stop = True
         self.purge_grbl()
+        self.log.put(("Stopped", str(datetime.datetime.now())))
 
     def purge_grbl(self):
         """Purge the buffer of grbl"""
@@ -110,7 +113,7 @@ class Sender(object):
     def run_ended(self):
         """Called when run is finished"""
         if self.running:
-            self.log.put(("Run ended", datetime.datetime.now()))
+            self.log.put(("Run ended", str(datetime.datetime.now())))
 
         self._pause = False
         self.running = False
@@ -136,6 +139,7 @@ class Sender(object):
 
     def empty_queue(self):
         """Clear the queue"""
+        self.log.put(("Emptying Queue", self.queue.qsize()))
         while self.queue.qsize() > 0:
             try:
                 self.queue.get_nowait()
@@ -147,6 +151,7 @@ class Sender(object):
         self._pause = False
         self.running = True
         self.empty_queue()
+        self.log.put(("Initializing", str(datetime.datetime.now())))
         time.sleep(1) # Give everything a bit of time
 
     def pause(self):
@@ -156,6 +161,7 @@ class Sender(object):
         if self._pause:
             self.resume()
         else:
+            self.log.put(("Pausing", str(datetime.datetime.now())))
             self.serial.write(b"!")
             self.serial.flush()
             self._pause = True
@@ -164,6 +170,7 @@ class Sender(object):
         """Resume a run"""
         if self.serial is None:
             return
+        self.log.put(("Resuming", str(datetime.datetime.now())))
         self.serial.write(b"~")
         self.serial.flush()
         self._pause = False
@@ -191,6 +198,7 @@ class Sender(object):
                     and not self._pause # and not paused
                     and self.queue.qsize() > 0): # and stuff in the queue
                 to_send = self.queue.get_nowait()
+                self.log.put(("to_send", to_send, str(datetime.datetime.now())))
                 if isinstance(to_send, tuple):
                     if to_send[0] == "WAIT":
                         wait = True
@@ -208,10 +216,11 @@ class Sender(object):
             if self.serial.inWaiting() or to_send is None:
                 try:
                     line = str(self.serial.readline()).strip()
+                    self.log.put(("rawline", line, str(datetime.datetime.now())))
                 except BaseException: # Queue is likely correupted, disconnect
                     self.log.put(("Received",
                                   str(sys.exc_info()[1]),
-                                  datetime.datetime()))
+                                  str(datetime.datetime.now())))
                     self.empty_queue()
                     self.close_serial()
                     return
@@ -270,7 +279,7 @@ class Sender(object):
 
     def __write_log_queue(self):
         """Write the log queue to a file"""
-        filename = "{}.log".format(datetime.datetime.now())
+        filename = "{}.log".format(str(datetime.datetime.now()))
         with open(filename, "w") as out_file:
             while self.log.qsize() > 0:
                 line = self.log.get_nowait()
