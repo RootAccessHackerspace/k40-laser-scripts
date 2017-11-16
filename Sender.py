@@ -13,10 +13,14 @@ __email__ = "d.armitage89@gmail.com"
 from multiprocessing import Process, Queue
 
 import sys
+import logging
 import time
 import datetime
 import serial
+import multiprocessing
 
+logger = multiprocessing.log_to_stderr()
+logger.setLevel(logging.DEBUG)
 
 #from GrblCodes import ALARM_CODES, ERROR_CODES
 
@@ -97,6 +101,7 @@ class Sender(object):
     def stop_run(self):
         """Stop the current run of Gcode"""
         self.pause()
+        logger.info("RECEIVED 104")
         self._stop = True
         self.purge_grbl()
         self.log.put(("Stopped", str(datetime.datetime.now())))
@@ -187,36 +192,65 @@ class Sender(object):
         t_report = t_state = time.time() # when ? or $G was sent last
 
         while self.process:
+            #logger.debug("{}".format(str(datetime.datetime.now())))
             t_curr = time.time()
             if t_curr-t_report > SERIAL_POLL:
                 self.serial.write(b"?")
                 status = True
                 t_report = t_curr
 
+            logger.info(("HB",
+                         {"to_send": to_send,
+                          "wait": wait,
+                          "self._pause": self._pause,
+                          "self._stop": self._stop,
+                          "queue.qsize()": self.queue.qsize(),
+                          "command_lens": command_lens,
+                          "command_pipe": command_pipe,
+                          "status": status,
+                          "t_report": t_report,
+                          "t_state": t_state
+                         }
+                        )
+                       )
+
             if (to_send is None # nothing to send
                     and not wait # and not waiting
                     and not self._pause # and not paused
                     and self.queue.qsize() > 0): # and stuff in the queue
-                to_send = self.queue.get_nowait()
-                self.log.put(("to_send", to_send, str(datetime.datetime.now())))
-                if isinstance(to_send, tuple):
-                    if to_send[0] == "WAIT":
-                        wait = True
-                    to_send = None
-                elif isinstance(to_send, (str, unicode)):
-                    to_send += "\n"
+                logger.debug({"to_send": to_send,
+                              "wait": wait,
+                              "_pause": self._pause,
+                              "queue.qsize": self.queue.qsize()}
+                            )
+                try:
+                    to_send = self.queue.get_nowait()
+                    logger.debug(("to_send", to_send, str(datetime.datetime.now())))
+                    if isinstance(to_send, tuple):
+                        if to_send[0] == "WAIT":
+                            logger.debug(("Waiting", str(datetime.datetime.now())))
+                            wait = True
+                        to_send = None
+                    elif isinstance(to_send, (str, unicode)):
+                        to_send += "\n"
 
-                if to_send is not None:
-                    if isinstance(to_send, unicode):
-                        to_send = to_send.encode("ascii", "replace")
-                command_pipe.append(to_send)
-                command_lens.append(len(to_send))
+                    if to_send is not None:
+                        if isinstance(to_send, unicode):
+                            to_send = to_send.encode("ascii", "replace")
+                    command_pipe.append(to_send)
+                    command_lens.append(len(to_send))
+                except:
+                    logger.debug("Pass!")
+                    pass
 
             # Receive anything waiting
             if self.serial.inWaiting() or to_send is None:
+                logger.debug({"serial.inWaiting()": self.serial.inWaiting(),
+                              "to_send": to_send}
+                            )
                 try:
                     line = str(self.serial.readline()).strip()
-                    self.log.put(("rawline", line, str(datetime.datetime.now())))
+                    logger.debug(("rawline", line, str(datetime.datetime.now())))
                 except BaseException: # Queue is likely correupted, disconnect
                     self.log.put(("Received",
                                   str(sys.exc_info()[1]),
@@ -226,6 +260,7 @@ class Sender(object):
                     return
                 if not line:
                     # Nothing actually received
+                    logger.debug("not line == True")
                     pass
                 elif line[0] == "<": # There's a status message!
                     if not status: # We weren't expecting one
@@ -233,8 +268,16 @@ class Sender(object):
                     # Status was True then
                     status = False
                     fields = line[1:-1].split("|")
+                    logger.info(fields)
                     # Machine is idle, continue!
-                    if wait and fields[0] in ("Idle", "Check"):
+                    logger.info({"wait": wait,
+                                 "fields[0]": fields[0],
+                                 "command_lens": command_lens,
+                                 "not command_lens": not command_lens,
+                                }
+                               )
+                    if wait and fields[0] in ("Idle", "Check") and not command_lens:
+                        logger.info("wait == True, fields[0] == Idle or Check, not command_lens == True")
                         wait = False
                 elif line[0] == "[":
                     self.log.put(("Received", line))
@@ -245,6 +288,7 @@ class Sender(object):
                     if command_pipe:
                         del command_pipe[0]
                     if self.running:
+                        logger.info("RECEIVED 291")
                         self._stop = True
                 elif line.find("ok") >= 0: # It was okay!
                     self.log.put(("OK", line))
@@ -253,14 +297,19 @@ class Sender(object):
                     if command_pipe:
                         del command_pipe[0]
                 elif line[:4] == "Grbl": # Grbl was reset
+                    #TODO: Why is this getting triggered? 
                     t_state = time.time()
                     self.log.put(("Received", line))
+                    logger.debug("RECEIVED 302")
+                    logger.debug(("line[:4]", line[:4]))
                     self._stop = True
                     # It would be pointless to keep the current queue
                     del command_lens[:]
                     del command_pipe[:]
             # Received a command to stop
             if self._stop:
+                #TODO: Shouldn't this reset _stop to False?
+                logger.info("RECEIVED 309")
                 self.empty_queue()
                 to_send = None
                 self.log.put(("Cleared", ""))
@@ -282,6 +331,9 @@ class Sender(object):
         filename = "{}.log".format(str(datetime.datetime.now()))
         with open(filename, "w") as out_file:
             while self.log.qsize() > 0:
-                line = self.log.get_nowait()
+                try:
+                    line = self.log.get_nowait()
+                except BaseException:
+                    pass
                 out_line = "{}\n".format(line)
                 out_file.write(out_line)

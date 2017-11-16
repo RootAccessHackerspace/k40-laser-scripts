@@ -20,6 +20,7 @@ from subprocess import check_output
 import sys
 import os
 import signal
+import datetime
 import pwd
 import time
 import random
@@ -299,7 +300,8 @@ class MainWindow(tk.Frame, Sender):
     def open(self, device):
         """Open serial device"""
         try:
-            status = Sender.open_serial(self, device)
+            status = self.open_serial(device)
+            self.log.put(("Opening serial", str(datetime.datetime.now()), status))
             self._activate_conn()
             self.conn.button_conn.configure(command=self.close)
             self.conn.status.set("Connected")
@@ -313,23 +315,25 @@ class MainWindow(tk.Frame, Sender):
 
     def close(self):
         """Close serial device"""
-        Sender.close_serial(self)
+        self.log.put(("Closing serial", str(datetime.datetime.now())))
+        self.close_serial()
         self._deactivate_conn()
         self.conn.button_conn.configure(command=lambda: self.open(GRBL_SERIAL))
         self.conn.status.set("Not Connected")
         self.conn.connect_b.set("Connect")
 
-    def home(self):
-        return Sender.home(self)
+    #def home(self):
+    #    return Sender.home(self)
 
-    def soft_reset(self):
-        return Sender.soft_reset(self)
+    #def soft_reset(self):
+    #    return Sender.soft_reset(self)
 
-    def unlock(self):
-        return Sender.unlock(self)
+    #def unlock(self):
+    #    return Sender.unlock(self)
 
     def run(self, lines=None):
         """Send gcode file to the laser"""
+        self.log.put(("MainApplication.run()", str(datetime.datetime.now())))
         if self.serial is None:
             messagebox.showerror("Serial Error", "GRBL is not connected")
             return
@@ -353,9 +357,9 @@ class MainWindow(tk.Frame, Sender):
         self.log.put(("Queued", "WAIT"))
         self.queue.put(("WAIT",))
 
-    def destroy(self):
-        """Clean shutdown"""
-        Sender.close_serial(self)
+    #def destroy(self):
+    #    """Clean shutdown"""
+    #    Sender.close_serial(self)
 
 ####---- Generic Functions ----####
 ### NFC-related
