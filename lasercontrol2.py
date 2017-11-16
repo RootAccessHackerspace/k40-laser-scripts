@@ -108,12 +108,16 @@ class MainWindow(tk.Frame, Sender):
         self.gcode.button_pause = ttk.Button(self.gcode,
                                              text="Pause",
                                              image=self.gcode.image_pause,
-                                             compound="top")
+                                             compound="top",
+                                             command=self.pause,
+                                            )
         self.gcode.image_stop = tk.PhotoImage(file="button_stop.gif")
         self.gcode.button_stop = ttk.Button(self.gcode,
                                             text="Stop",
                                             image=self.gcode.image_stop,
-                                            compound="top")
+                                            compound="top",
+                                            command=self.stop_run,
+                                           )
         self.gcode.file = None
         ### Connection/Status buttons and label
         self.conn.label_status = tk.Label(self.conn, text="Status:")
