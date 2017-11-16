@@ -31,9 +31,11 @@ from Sender import Sender
 try:
     import Tkinter as tk
     import tkMessageBox as messagebox
+    import tkFileDialog as filedialog
 except ImportError:
     import tkinter as tk
     import tkinter.messagebox as messagebox
+    import tkinter.filedialog as filedialog
 import wiringpi as GPIO
 
 ####---- Variables ----####
@@ -62,7 +64,7 @@ class MainWindow(tk.Frame, Sender):
         tk.Frame.__init__(self, root, *args, **kwargs)
         Sender.__init__(self)
         self.root = root
-        self.root.geometry("400x200+0-5")
+        self.root.geometry("400x300+0-5")
         self.root.resizable(width=False, height=False)
         self.grid()
 
@@ -78,6 +80,9 @@ class MainWindow(tk.Frame, Sender):
         ## Sub-frame for "status" controls
         self.conn = ttk.Frame(self.root)
         self.conn.grid(column=10, row=25, sticky="N")
+        ## Sub-frame for Gcode file loading
+        self.load = ttk.Labelframe(self.root, text="File")
+        self.load.grid(column=10, row=100, sticky="W")
         ### GPIO buttons
         self.gpio.button_auth = ttk.Button(self.gpio, text="Authorize")
         self.gpio.button_psu = ttk.Button(self.gpio, text="Power Supply")
@@ -121,6 +126,11 @@ class MainWindow(tk.Frame, Sender):
                                                  text="Soft Reset")
         self.conn.button_unlock = ttk.Button(self.conn,
                                              text="Unlock")
+        ### Gcode file buttons and label
+        self.load.button_open = ttk.Button(self.load, text="Open")
+        self.load.filename = tk.StringVar()
+        self.load.label_file = tk.Label(self.load,
+                                        textvariable=self.load.filename)
 
         self.__init_window()
 
@@ -174,6 +184,11 @@ class MainWindow(tk.Frame, Sender):
         self.conn.button_reset_soft.state(["disabled"])
         self.conn.button_unlock.grid(column=40, row=10)
         self.conn.button_unlock.state(["disabled"])
+
+        # File loading buttons
+        self.load.button_open.grid(column=10, row=10)
+        self.load.button_open.configure(command=self.select_filepath)
+        self.load.label_file.grid(column=20, row=10)
 
     def _switch_pin(self, item):
         pin = OUT_PINS[item]
@@ -240,12 +255,37 @@ class MainWindow(tk.Frame, Sender):
         self.conn.button_reset_soft.state(["!disabled"])
         self.conn.button_unlock.configure(command=self.unlock)
         self.conn.button_unlock.state(["!disabled"])
+        self.gcode.button_start.state(["!disabled"])
+        self.gcode.button_pause.state(["!disabled"])
+        self.gcode.button_stop.state(["!disabled"])
 
     def _deactivate_conn(self):
         """Enable the connection buttons"""
         self.conn.button_home.state(["disabled"])
         self.conn.button_reset_soft.state(["disabled"])
         self.conn.button_unlock.state(["disabled"])
+        self.gcode.button_start.state(["disabled"])
+        self.gcode.button_pause.state(["disabled"])
+        self.gcode.button_stop.state(["disabled"])
+
+    def select_filepath(self):
+        """Use tkfiledialog to select the appropriate file"""
+        valid_files = [("GCODE", ("*.gc",
+                                  "*.gcode",
+                                  "*.nc",
+                                  "*.cnc"
+                                  "*.ncg")
+                       )]
+        initial_dir = GDIR
+        filepath = filedialog.askopenfilename(filetypes=valid_files,
+                                              initialdir=initial_dir)
+        self.load.filename.set(os.path.basename(filepath))
+        with open(self.load.filename, 'r') as gcode_file:
+            #TODO: Figure out why `lines` is not passing to self.run()
+            #TODO: Make sure that proper newlines are used
+            lines = None
+            for line in gcode_file:
+                lines.append(line)
 
     def open(self, device):
         """Open serial device"""
@@ -300,6 +340,10 @@ class MainWindow(tk.Frame, Sender):
                     else:
                         self.queue.put(line)
         self.queue.put(("WAIT",))
+
+    def destroy(self):
+        """Clean shutdown"""
+        self.close()
 
 ####---- Generic Functions ----####
 ### NFC-related
