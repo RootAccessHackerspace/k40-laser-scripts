@@ -25,6 +25,7 @@ SERIAL_TIMEOUT = 0.1 # seconds
 SERIAL_POLL = 0.25 # seconds
 G_POLL = 10 # seconds
 RX_BUFFER_SIZE = 128 # bytes
+OUTPUT_LOG_QUEUE = True # Whether to write the log queue to a file
 
 class Sender(object):
     """Class that controls access to GRBL"""
@@ -87,6 +88,8 @@ class Sender(object):
         except BaseException:
             raise
         self.serial = None
+        if OUTPUT_LOG_QUEUE:
+            self.__write_log_queue()
         return True
 
     def stop_run(self):
@@ -264,3 +267,12 @@ class Sender(object):
                     command_pipe.append(to_send)
                     command_lens.append(len(to_send))
                     t_state = t_curr
+
+    def __write_log_queue(self):
+        """Write the log queue to a file"""
+        filename = "{}.log".format(datetime.datetime.now())
+        with open(filename, "w") as out_file:
+            while self.log.qsize() > 0:
+                line = self.log.get_nowait()
+                out_line = "{}\n".format(line)
+                out_file.write(out_line)
