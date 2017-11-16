@@ -101,7 +101,9 @@ class MainWindow(tk.Frame, Sender):
         self.gcode.button_start = ttk.Button(self.gcode,
                                              text="Start",
                                              image=self.gcode.image_play,
-                                             compound="top")
+                                             compound="top",
+                                             command=lambda: self.run(self.gcode.file)
+                                            )
         self.gcode.image_pause = tk.PhotoImage(file="button_pause.gif")
         self.gcode.button_pause = ttk.Button(self.gcode,
                                              text="Pause",
@@ -112,6 +114,7 @@ class MainWindow(tk.Frame, Sender):
                                             text="Stop",
                                             image=self.gcode.image_stop,
                                             compound="top")
+        self.gcode.file = None
         ### Connection/Status buttons and label
         self.conn.label_status = tk.Label(self.conn, text="Status:")
         self.conn.status = tk.StringVar()
@@ -273,19 +276,21 @@ class MainWindow(tk.Frame, Sender):
         valid_files = [("GCODE", ("*.gc",
                                   "*.gcode",
                                   "*.nc",
-                                  "*.cnc"
-                                  "*.ncg")
-                       )]
+                                  "*.cnc",
+                                  "*.ncg",
+                                  "*.txt"),
+                       ),
+                       ("GCODE text", "*.txt"),
+                       ("All", "*")
+                      ]
         initial_dir = GDIR
         filepath = filedialog.askopenfilename(filetypes=valid_files,
                                               initialdir=initial_dir)
         self.load.filename.set(os.path.basename(filepath))
-        with open(self.load.filename, 'r') as gcode_file:
-            #TODO: Figure out why `lines` is not passing to self.run()
-            #TODO: Make sure that proper newlines are used
-            lines = None
+        with open(filepath, 'r') as gcode_file:
+            self.gcode.file = []
             for line in gcode_file:
-                lines.append(line)
+                self.gcode.file.append(line)
 
     def open(self, device):
         """Open serial device"""
@@ -343,7 +348,7 @@ class MainWindow(tk.Frame, Sender):
 
     def destroy(self):
         """Clean shutdown"""
-        self.close()
+        Sender.close_serial(self)
 
 ####---- Generic Functions ----####
 ### NFC-related
