@@ -337,13 +337,13 @@ class MainWindow(tk.Frame, Sender):
         if self.serial is None:
             messagebox.showerror("Serial Error", "GRBL is not connected")
             return
-        if self.running:
-            if self._pause:
-                self.resume()
-                return
-            messagebox.showerror("Currently running",
-                                 "Please stop current job first.")
-            return
+        #if self.running:
+        #    if self._pause:
+        #        self.resume()
+        #        return
+        #    messagebox.showerror("Currently running",
+        #                         "Please stop current job first.")
+        #    return
         self.init_run()
         if lines is not None:
             for line in lines:

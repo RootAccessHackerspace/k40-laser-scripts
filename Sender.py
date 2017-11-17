@@ -104,9 +104,9 @@ class Sender(object):
         """Stop the current run of Gcode"""
         logger.debug("Called Sender.stop_run()")
         logger.debug("Calling self.pause()")
-        self.pause()
+        #self.pause()
         logger.info("Stopping run")
-        self._stop = True
+        #self._stop = True
         logger.debug("Purging Grbl")
         self.purge_grbl()
         self.log.put(("Stopped", str(datetime.datetime.now())))
@@ -136,8 +136,8 @@ class Sender(object):
                                          "running": self.running,
                                         }
                      ))
-        self._pause = False
-        self.running = False
+        #self._pause = False
+        #self.running = False
         logger.debug(("Run ended, post", {"_pause": self._pause,
                                           "running": self.running,
                                          }))
@@ -166,8 +166,8 @@ class Sender(object):
         logger.debug(("send_gcode", {"serial": self.serial,
                                      "running": self.running
                                     }))
-        if self.serial and not self.running:
-            logger.debug("self.serial == True & self.running == False")
+        if self.serial: # and not self.running:
+            logger.debug("self.serial == True")
             self.queue.put(command+"\n")
 
     def empty_queue(self):
@@ -188,8 +188,8 @@ class Sender(object):
         logger.debug(("init_run, pre", {"_pause": self._pause,
                                         "running": self.running
                                        }))
-        self._pause = False
-        self.running = True
+        #self._pause = False
+        #self.running = True
         logger.debug(("init_run, post", {"_pause": self._pause,
                                          "running": self.running
                                         }))
