@@ -354,8 +354,8 @@ class MainWindow(tk.Frame, Sender):
                     else:
                         self.log.put(("Queued", line))
                         self.queue.put(line)
-        self.log.put(("Queued", "WAIT"))
-        self.queue.put(("WAIT",))
+        #self.log.put(("Queued", "WAIT"))
+        #self.queue.put(("WAIT",))
 
     #def destroy(self):
     #    """Clean shutdown"""

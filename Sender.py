@@ -264,7 +264,9 @@ class Sender(object):
             if line is not None:
                 line = line.encode("ascii", "replace").strip()
                 self.serial.write(line + "\n")
-            if self.serial.in_waiting > 0:
+                while self.serial.in_waiting == 0:
+                    # Wait for the "ok" hopefully
+                    time.sleep(0.1)
                 returned = self.serial.readline().strip()
                 logger.debug(("serial_io dur DEBUG:", {"returned": returned}))
             logger.debug(("serial_io post DEBUG:",
