@@ -259,35 +259,14 @@ class Sender(object):
             except Empty:
                 line = None
             logger.debug(("serial_io dur DEBUG:", {"line": line}))
-            if line:
-                line_count += 1
-                logger.debug("line_count now %d", line_count)
-                # Strip spaces, comments, and newlines, and capitalize
-                # (aka, save bytes)
-                line_block = re.sub(r'\s|\(.*?\)', '', line).upper()
-                char_line.append(len(line_block)+1) # +1 for the impending newline
-                logger.debug("char_line now %s", char_line)
-                #grbl_out = ""
-                while sum(char_line) >= RX_BUFFER_SIZE or self.serial.inWaiting():
-                    out_temp = self.serial.readline().strip()
-                    if out_temp.find("ok") < 0 and out_temp.find("error") < 0:
-                        logger.debug("Debug response: %s", out_temp)
-                    else:
-                        logger.debug("out_temp: %s", out_temp)
-                        if out_temp.find("error") >= 0:
-                            error_count += 1
-                            logger.debug("Error count now %d", error_count)
-                        gcode_count += 1
-                        logger.debug("Gcode count now %d", gcode_count)
-                        # Delete character count of block corresponding to
-                        # last "ok"
-                        logger.debug("Deleting first char_line")
-                        del char_line[0]
-                logger.debug("Writing line_block %s", line_block)
-                self.serial.write(line_block + "\n")
-            if self.queue.qsize() == 0 and line_count == gcode_count:
-                logger.debug("Queue is empty, erasing char_line")
-                del char_line[:]
+            if isinstance(line, tuple):
+                line = None
+            if line is not None:
+                line = line.encode("ascii", "replace").strip()
+                self.serial.write(line + "\n")
+            if self.serial.in_waiting > 0:
+                returned = self.serial.readline().strip()
+                logger.debug(("serial_io dur DEBUG:", {"returned": returned}))
             logger.debug(("serial_io post DEBUG:",
                           {"line_count": line_count,
                            "error_Count": error_count,
