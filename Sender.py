@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # coding=UTF-8
 """Module to communicate with GRBL via serial"""
-
+# pylint: disable=line-too-long,logging-format-interpolation,unused-import,invalid-name
 
 __author__ = "Dylan Armitage"
 __email__ = "d.armitage89@gmail.com"
@@ -15,6 +15,7 @@ from multiprocessing import Process, Queue
 from Queue import Empty
 
 import sys
+import re
 import logging
 import time
 import datetime
@@ -174,10 +175,10 @@ class Sender(object):
         logger.debug("Called Sender.empty_queue()")
         self.log.put(("Emptying Queue", self.queue.qsize()))
         while self.queue.qsize() > 0:
-            logger.debug("Current qsize: {}".format(self.queue.qsize()))
+            logger.debug("Current qsize: %s", self.queue.qsize())
             try:
                 self.queue.get_nowait()
-            except Queue.Empty:
+            except Empty:
                 logger.debug("Emptying Queue, qsize == 0")
                 break
 
@@ -200,7 +201,7 @@ class Sender(object):
     def pause(self):
         """Pause run"""
         logger.debug("Called Sender.pause()")
-        logger.debug(("pause, pre", {"_serial": self._serial,
+        logger.debug(("pause, pre", {"_serial": self.serial,
                                      "_pause": self._pause,
                                     }))
         if self.serial is None:
@@ -214,14 +215,14 @@ class Sender(object):
             self.serial.write(b"!")
             self.serial.flush()
             self._pause = True
-        logger.debug(("pause, post", {"_serial": self._serial,
+        logger.debug(("pause, post", {"_serial": self.serial,
                                       "_pause": self._pause,
                                      }))
 
     def resume(self):
         """Resume a run"""
         logger.debug("Called Sender.resume()")
-        logger.debug(("resume, pre", {"_serial": self._serial,
+        logger.debug(("resume, pre", {"_serial": self.serial,
                                       "_pause": self._pause,
                                      }))
         if self.serial is None:
@@ -230,7 +231,7 @@ class Sender(object):
         self.serial.write(b"~")
         self.serial.flush()
         self._pause = False
-        logger.debug(("resume, post", {"_serial": self._serial,
+        logger.debug(("resume, post", {"_serial": self.serial,
                                        "_pause": self._pause,
                                       }))
 
@@ -239,8 +240,61 @@ class Sender(object):
 
         This is borrowed heavily from stream.py of the GRBL project"""
         logger.debug("serial_io started")
+        line_count = 0
+        error_count = 0
         gcode_count = 0
         char_line = []
+        line = None
+
+        while self.process:
+            logger.debug(("serial_io pre DEBUG:",
+                          {"line_count": line_count,
+                           "error_Count": error_count,
+                           "gcode_count": gcode_count,
+                           "char_line": char_line,
+                           "line": line,
+                          }))
+            try:
+                line = self.queue.get_nowait()
+            except Empty:
+                line = None
+            logger.debug(("serial_io dur DEBUG:", {"line": line}))
+            if line:
+                line_count += 1
+                logger.debug("line_count now %d", line_count)
+                # Strip spaces, comments, and newlines, and capitalize
+                # (aka, save bytes)
+                line_block = re.sub(r'\s|\(.*?\)', '', line).upper()
+                char_line.append(len(line_block)+1) # +1 for the impending newline
+                logger.debug("char_line now %s", char_line)
+                #grbl_out = ""
+                while sum(char_line) >= RX_BUFFER_SIZE or self.serial.inWaiting():
+                    out_temp = self.serial.readline().strip()
+                    if out_temp.find("ok") < 0 and out_temp.find("error") < 0:
+                        logger.debug("Debug response: %s", out_temp)
+                    else:
+                        logger.debug("out_temp: %s", out_temp)
+                        if out_temp.find("error") >= 0:
+                            error_count += 1
+                            logger.debug("Error count now %d", error_count)
+                        gcode_count += 1
+                        logger.debug("Gcode count now %d", gcode_count)
+                        # Delete character count of block corresponding to
+                        # last "ok"
+                        logger.debug("Deleting first char_line")
+                        del char_line[0]
+                logger.debug("Writing line_block %s", line_block)
+                self.serial.write(line_block + "\n")
+            if self.queue.qsize() == 0 and line_count == gcode_count:
+                logger.debug("Queue is empty, erasing char_line")
+                del char_line[:]
+            logger.debug(("serial_io post DEBUG:",
+                          {"line_count": line_count,
+                           "error_Count": error_count,
+                           "gcode_count": gcode_count,
+                           "char_line": char_line,
+                           "line": line,
+                          }))
 
 
     def __write_log_queue(self):
