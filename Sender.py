@@ -10,14 +10,15 @@ __email__ = "d.armitage89@gmail.com"
 # https://github.com/vlachoudis/bCNC
 
 ####---- Import ----####
+import multiprocessing
 from multiprocessing import Process, Queue
+from Queue import Empty
 
 import sys
 import logging
 import time
 import datetime
 import serial
-import multiprocessing
 
 logger = multiprocessing.log_to_stderr()
 logger.setLevel(logging.DEBUG)
@@ -57,6 +58,7 @@ class Sender(object):
 
     def open_serial(self, device):
         """Open serial port"""
+        self.log.put(("Opening", str(datetime.datetime.now())))
         self.serial = serial.serial_for_url(device,
                                             baudrate=115200,
                                             bytesize=serial.EIGHTBITS,
@@ -76,18 +78,17 @@ class Sender(object):
         self.serial.write(b"\n\n")
         self.process = Process(target=self.serial_io)
         self.process.start()
-        self.log.put(("Opening", str(datetime.datetime.now())))
         return True
 
     def close_serial(self):
         """Close serial port"""
+        self.log.put(("Closing", str(datetime.datetime.now())))
         if self.serial is None:
             return
         try:
             self.stop_run()
         except BaseException:
             pass
-        self.log.put(("Closing", str(datetime.datetime.now())))
         self.process = None
         try:
             self.serial.close()
@@ -100,231 +101,147 @@ class Sender(object):
 
     def stop_run(self):
         """Stop the current run of Gcode"""
+        logger.debug("Called Sender.stop_run()")
+        logger.debug("Calling self.pause()")
         self.pause()
-        logger.info("RECEIVED 104")
+        logger.info("Stopping run")
         self._stop = True
+        logger.debug("Purging Grbl")
         self.purge_grbl()
         self.log.put(("Stopped", str(datetime.datetime.now())))
 
     def purge_grbl(self):
         """Purge the buffer of grbl"""
+        logger.debug("Called Sender.purge_grbl()")
+        logger.debug("Sending control-code pause")
         self.serial.write(b"!") # Immediately pause
         self.serial.flush()
         time.sleep(1)
+        logger.debug("Calling self.soft_reset()")
         self.soft_reset()
+        logger.debug("Calling self.unlock()")
         self.unlock()
+        logger.debug("Calling run_ended()")
         self.run_ended()
+        self.log.put(("Grbl purged", str(datetime.datetime.now())))
 
     def run_ended(self):
         """Called when run is finished"""
+        logger.debug("Called Sender.run_ended()")
         if self.running:
+            logger.debug("self.running == True when run_ended()")
             self.log.put(("Run ended", str(datetime.datetime.now())))
-
+        logger.debug(("Run ended, pre", {"_pause": self._pause,
+                                         "running": self.running,
+                                        }
+                     ))
         self._pause = False
         self.running = False
+        logger.debug(("Run ended, post", {"_pause": self._pause,
+                                          "running": self.running,
+                                         }))
 
     def soft_reset(self):
         """Send GRBL reset command"""
+        logger.debug("Called Sender.soft_reset()")
         if self.serial:
             self.serial.write(b"\030")
+            logger.debug("Sent b'\030'")
 
     def unlock(self):
         """Send GRBL unlock command"""
+        logger.debug("Called Sender.unlock()")
         self.send_gcode("$X")
 
     def home(self):
         """Send GRBL home command"""
+        logger.debug("Called Sender.home()")
         self.send_gcode("$H")
 
     def send_gcode(self, command):
         """Send GRBL a Gcode/command line"""
+        logger.debug("Called Sender.send_gcode() with {}".format(command))
         # Do nothing if not actually up
+        logger.debug(("send_gcode", {"serial": self.serial,
+                                     "running": self.running
+                                    }))
         if self.serial and not self.running:
+            logger.debug("self.serial == True & self.running == False")
             self.queue.put(command+"\n")
 
     def empty_queue(self):
         """Clear the queue"""
+        logger.debug("Called Sender.empty_queue()")
         self.log.put(("Emptying Queue", self.queue.qsize()))
         while self.queue.qsize() > 0:
+            logger.debug("Current qsize: {}".format(self.queue.qsize()))
             try:
                 self.queue.get_nowait()
-            except BaseException:
+            except Queue.Empty:
+                logger.debug("Emptying Queue, qsize == 0")
                 break
 
     def init_run(self):
         """Initialize a gcode run"""
+        logger.debug("Called Sender.init_run()")
+        logger.debug(("init_run, pre", {"_pause": self._pause,
+                                        "running": self.running
+                                       }))
         self._pause = False
         self.running = True
+        logger.debug(("init_run, post", {"_pause": self._pause,
+                                         "running": self.running
+                                        }))
+        logger.debug("Calling self.empty_queue()")
         self.empty_queue()
         self.log.put(("Initializing", str(datetime.datetime.now())))
         time.sleep(1) # Give everything a bit of time
 
     def pause(self):
         """Pause run"""
+        logger.debug("Called Sender.pause()")
+        logger.debug(("pause, pre", {"_serial": self._serial,
+                                     "_pause": self._pause,
+                                    }))
         if self.serial is None:
             return
         if self._pause:
+            logger.debug("Calling self.resume() b/c _pause==True")
             self.resume()
         else:
+            logger.debug("_pause==False, so pausing")
             self.log.put(("Pausing", str(datetime.datetime.now())))
             self.serial.write(b"!")
             self.serial.flush()
             self._pause = True
+        logger.debug(("pause, post", {"_serial": self._serial,
+                                      "_pause": self._pause,
+                                     }))
 
     def resume(self):
         """Resume a run"""
+        logger.debug("Called Sender.resume()")
+        logger.debug(("resume, pre", {"_serial": self._serial,
+                                      "_pause": self._pause,
+                                     }))
         if self.serial is None:
             return
         self.log.put(("Resuming", str(datetime.datetime.now())))
         self.serial.write(b"~")
         self.serial.flush()
         self._pause = False
+        logger.debug(("resume, post", {"_serial": self._serial,
+                                       "_pause": self._pause,
+                                      }))
 
     def serial_io(self):
-        """Process to perform I/O on GRBL"""
-        # pylint: disable=too-many-branches,too-many-statements
-        # Probably should split this up...
-        command_lens = [] # length of piplined commands
-        command_pipe = [] # pipelined commands
-        wait = False # wait for commands to complete, aka status change to Idle
-        to_send = None # Next command to send
-        status = False # wait for status report (<...> from ? command)
-        t_report = t_state = time.time() # when ? or $G was sent last
+        """Process to perform I/O on GRBL
 
-        while self.process:
-            #logger.debug("{}".format(str(datetime.datetime.now())))
-            t_curr = time.time()
-            if t_curr-t_report > SERIAL_POLL:
-                self.serial.write(b"?")
-                status = True
-                t_report = t_curr
+        This is borrowed heavily from stream.py of the GRBL project"""
+        logger.debug("serial_io started")
+        gcode_count = 0
+        char_line = []
 
-            logger.info(("HB",
-                         {"to_send": to_send,
-                          "wait": wait,
-                          "self._pause": self._pause,
-                          "self._stop": self._stop,
-                          "queue.qsize()": self.queue.qsize(),
-                          "command_lens": command_lens,
-                          "command_pipe": command_pipe,
-                          "status": status,
-                          "t_report": t_report,
-                          "t_state": t_state
-                         }
-                        )
-                       )
-
-            if (to_send is None # nothing to send
-                    and not wait # and not waiting
-                    and not self._pause # and not paused
-                    and self.queue.qsize() > 0): # and stuff in the queue
-                logger.debug({"to_send": to_send,
-                              "wait": wait,
-                              "_pause": self._pause,
-                              "queue.qsize": self.queue.qsize()}
-                            )
-                try:
-                    to_send = self.queue.get_nowait()
-                    logger.debug(("to_send", to_send, str(datetime.datetime.now())))
-                    if isinstance(to_send, tuple):
-                        if to_send[0] == "WAIT":
-                            logger.debug(("Waiting", str(datetime.datetime.now())))
-                            wait = True
-                        to_send = None
-                    elif isinstance(to_send, (str, unicode)):
-                        to_send += "\n"
-
-                    if to_send is not None:
-                        if isinstance(to_send, unicode):
-                            to_send = to_send.encode("ascii", "replace")
-                    command_pipe.append(to_send)
-                    command_lens.append(len(to_send))
-                except:
-                    logger.debug("Pass!")
-                    pass
-
-            # Receive anything waiting
-            if self.serial.inWaiting() or to_send is None:
-                logger.debug({"serial.inWaiting()": self.serial.inWaiting(),
-                              "to_send": to_send}
-                            )
-                try:
-                    line = str(self.serial.readline()).strip()
-                    logger.debug(("rawline", line, str(datetime.datetime.now())))
-                except BaseException: # Queue is likely correupted, disconnect
-                    self.log.put(("Received",
-                                  str(sys.exc_info()[1]),
-                                  str(datetime.datetime.now())))
-                    self.empty_queue()
-                    self.close_serial()
-                    return
-                if not line:
-                    # Nothing actually received
-                    logger.debug("not line == True")
-                    pass
-                elif line[0] == "<": # There's a status message!
-                    if not status: # We weren't expecting one
-                        self.log.put(("Received", line))
-                    # Status was True then
-                    status = False
-                    fields = line[1:-1].split("|")
-                    logger.info(fields)
-                    # Machine is idle, continue!
-                    logger.info({"wait": wait,
-                                 "fields[0]": fields[0],
-                                 "command_lens": command_lens,
-                                 "not command_lens": not command_lens,
-                                }
-                               )
-                    if wait and fields[0] in ("Idle", "Check") and not command_lens:
-                        logger.info("wait == True, fields[0] == Idle or Check, not command_lens == True")
-                        wait = False
-                elif line[0] == "[":
-                    self.log.put(("Received", line))
-                elif "error:" in line or "ALARM:" in line:
-                    self.log.put(("ERROR", line))
-                    if command_lens:
-                        del command_lens[0]
-                    if command_pipe:
-                        del command_pipe[0]
-                    if self.running:
-                        logger.info("RECEIVED 291")
-                        self._stop = True
-                elif line.find("ok") >= 0: # It was okay!
-                    self.log.put(("OK", line))
-                    if command_lens:
-                        del command_lens[0]
-                    if command_pipe:
-                        del command_pipe[0]
-                elif line[:4] == "Grbl": # Grbl was reset
-                    #TODO: Why is this getting triggered? 
-                    t_state = time.time()
-                    self.log.put(("Received", line))
-                    logger.debug("RECEIVED 302")
-                    logger.debug(("line[:4]", line[:4]))
-                    self._stop = True
-                    # It would be pointless to keep the current queue
-                    del command_lens[:]
-                    del command_pipe[:]
-            # Received a command to stop
-            if self._stop:
-                #TODO: Shouldn't this reset _stop to False?
-                logger.info("RECEIVED 309")
-                self.empty_queue()
-                to_send = None
-                self.log.put(("Cleared", ""))
-            # If there's stuff to actually send...
-            if (to_send is not None
-                    and sum(command_lens) < RX_BUFFER_SIZE):
-                self._sum_command_lens = sum(command_lens)
-                self.serial.write(bytes(to_send))
-                self.log.put(("Buffered", to_send))
-                to_send = None
-                if not self.running and t_curr-t_state > G_POLL:
-                    to_send = b"$G\n"
-                    command_pipe.append(to_send)
-                    command_lens.append(len(to_send))
-                    t_state = t_curr
 
     def __write_log_queue(self):
         """Write the log queue to a file"""
