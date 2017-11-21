@@ -21,7 +21,7 @@ import datetime
 import serial
 
 logger = log_to_stderr() #pylint: disable=invalid-name
-logger.setLevel(logging.ERROR)
+logger.setLevel(logging.INFO)
 
 #from GrblCodes import ALARM_CODES, ERROR_CODES
 
@@ -30,7 +30,7 @@ SERIAL_TIMEOUT = 0.1 # seconds
 SERIAL_POLL = 0.25 # seconds
 G_POLL = 10 # seconds
 RX_BUFFER_SIZE = 128 # bytes
-OUTPUT_LOG_QUEUE = True # Whether to write the log queue to a file
+OUTPUT_LOG_QUEUE = False # Whether to write the log queue to a file
 
 class Sender(object):
     """Class that controls access to GRBL"""
@@ -89,6 +89,7 @@ class Sender(object):
             self.stop_run()
         except BaseException:
             pass
+        self.queue.put(("KILL",))
         self.process = None
         try:
             self.serial.close()
@@ -259,6 +260,8 @@ class Sender(object):
                 line = None
             logger.debug(("serial_io dur DEBUG:", {"line": line}))
             if isinstance(line, tuple):
+                if line[0] == "KILL":
+                    self.process = None
                 line = None
             if line is not None:
                 line_count += 1
@@ -321,6 +324,8 @@ class Sender(object):
                            "char_line": char_line,
                            "line": line,
                           }))
+        else:
+            logger.info("Closing down serial_io")
 
 
     def __write_log_queue(self):
