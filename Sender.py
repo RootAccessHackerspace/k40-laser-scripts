@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # coding=UTF-8
 """Module to communicate with GRBL via serial"""
-# pylint: disable=line-too-long,logging-format-interpolation,unused-import,invalid-name
+# pylint: disable=line-too-long
 
 __author__ = "Dylan Armitage"
 __email__ = "d.armitage89@gmail.com"
@@ -21,7 +21,7 @@ import time
 import datetime
 import serial
 
-logger = multiprocessing.log_to_stderr()
+logger = multiprocessing.log_to_stderr() #pylint: disable=invalid-name
 logger.setLevel(logging.DEBUG)
 
 #from GrblCodes import ALARM_CODES, ERROR_CODES
@@ -161,7 +161,7 @@ class Sender(object):
 
     def send_gcode(self, command):
         """Send GRBL a Gcode/command line"""
-        logger.debug("Called Sender.send_gcode() with {}".format(command))
+        logger.debug("Called Sender.send_gcode() with %s", command)
         # Do nothing if not actually up
         logger.debug(("send_gcode", {"serial": self.serial,
                                      "running": self.running

@@ -103,7 +103,7 @@ class MainWindow(tk.Frame, Sender):
                                              text="Start",
                                              image=self.gcode.image_play,
                                              compound="top",
-                                             command=lambda: self.run(self.gcode.file)
+                                             command=lambda: self.run(self.gcode.file) #pylint: disable=line-too-long
                                             )
         self.gcode.image_pause = tk.PhotoImage(file="button_pause.gif")
         self.gcode.button_pause = ttk.Button(self.gcode,
@@ -301,7 +301,10 @@ class MainWindow(tk.Frame, Sender):
         """Open serial device"""
         try:
             status = self.open_serial(device)
-            self.log.put(("Opening serial", str(datetime.datetime.now()), status))
+            self.log.put(("Opening serial",
+                          str(datetime.datetime.now()),
+                          status
+                         ))
             self._activate_conn()
             self.conn.button_conn.configure(command=self.close)
             self.conn.status.set("Connected")
