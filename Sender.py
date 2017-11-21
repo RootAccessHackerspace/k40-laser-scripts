@@ -10,8 +10,7 @@ __email__ = "d.armitage89@gmail.com"
 # https://github.com/vlachoudis/bCNC
 
 ####---- Import ----####
-import multiprocessing
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, log_to_stderr
 from Queue import Empty
 
 import sys
@@ -21,8 +20,8 @@ import time
 import datetime
 import serial
 
-logger = multiprocessing.log_to_stderr() #pylint: disable=invalid-name
-logger.setLevel(logging.DEBUG)
+logger = log_to_stderr() #pylint: disable=invalid-name
+logger.setLevel(logging.ERROR)
 
 #from GrblCodes import ALARM_CODES, ERROR_CODES
 
@@ -262,13 +261,59 @@ class Sender(object):
             if isinstance(line, tuple):
                 line = None
             if line is not None:
+                line_count += 1
+                # Reformat line to be ASCII and remove all spaces, comments
+                # and newline characters. We want each line to be as short as
+                # possible.
                 line = line.encode("ascii", "replace").strip()
-                self.serial.write(line + "\n")
-                while self.serial.in_waiting == 0:
-                    # Wait for the "ok" hopefully
-                    time.sleep(0.1)
-                returned = self.serial.readline().strip()
-                logger.debug(("serial_io dur DEBUG:", {"returned": returned}))
+                line_block = re.sub(r"\s|\(.*?\)", "", line).upper()
+                # Track number of characters in the Grbl buffer
+                char_line.append(len(line_block)+1)
+                logger.debug(("serial_io dur DEBUG line:",
+                              {"line": line,
+                               "line_block": line_block,
+                               "line_count": line_count,
+                               "char_line": char_line,
+                              }))
+                while (sum(char_line) >= RX_BUFFER_SIZE-1
+                       or self.serial.in_waiting > 0):
+                    logger.debug(("serial_io dur DEBUG:",
+                                  {"sum(char_line)": sum(char_line),
+                                   "RX_BUFFER_SIZE-1": RX_BUFFER_SIZE-1,
+                                   "serial.in_waiting": self.serial.in_waiting,
+                                  }))
+                    out_temp = self.serial.readline().strip()
+                    if out_temp.find("ok") < 0 and out_temp.find("error") < 0:
+                        logger.info("Grbl MSG: %s", out_temp)
+                    else:
+                        if out_temp.find("error") >= 0:
+                            error_count += 1
+                            logger.error("Grbl Error: %s", out_temp)
+                        if out_temp.find("ok") >= 0:
+                            gcode_count += 1
+                            # The following try-except block seems to be mostly
+                            # because sending "$H\n" (aka, homing) to Grbl
+                            # triggers Grbl to send back two "ok".
+                            try:
+                                logger.debug("Most recent response: %s",
+                                             out_temp)
+                                logger.debug("Removing most recent command")
+                                del char_line[0]
+                            except IndexError:
+                                logger.debug("char_line already empty")
+                        else:
+                            logger.error("Unexpected output: %s", out_temp)
+                self.serial.write(line_block + "\n")
+            while line_count > gcode_count:
+                out_temp = self.serial.readline().strip()
+                if out_temp.find("ok") < 0 and out_temp.find("error") < 0:
+                    logger.info("Grbl MSG: %s", out_temp)
+                else:
+                    if out_temp.find("error") >= 0:
+                        error_count += 1
+                        logger.error("Grbl Error: %s", out_temp)
+                    gcode_count += 1
+                    del char_line[0]
             logger.debug(("serial_io post DEBUG:",
                           {"line_count": line_count,
                            "error_Count": error_count,
