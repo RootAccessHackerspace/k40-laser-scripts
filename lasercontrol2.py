@@ -26,6 +26,9 @@ import time
 import random
 import crypt
 import ttk
+from threading import Thread
+from inotify.adapters import Inotify
+from inotify.constants import IN_CLOSE_WRITE
 
 from Sender import Sender
 
@@ -120,6 +123,7 @@ class MainWindow(tk.Frame, Sender):
                                             command=self.stop_run,
                                            )
         self.gcode.file = None
+        self.gcode.file_scan = False
         ### Connection/Status buttons and label
         self.conn.label_status = tk.Label(self.conn, text="Status:")
         self.conn.status = tk.StringVar()
@@ -266,6 +270,9 @@ class MainWindow(tk.Frame, Sender):
         self.gcode.button_start.state(["!disabled"])
         self.gcode.button_pause.state(["!disabled"])
         self.gcode.button_stop.state(["!disabled"])
+        self.gcode.file_scan = True
+        file_scan_thread = Thread(target=self._file_scanning)
+        file_scan_thread.start()
 
     def _deactivate_conn(self):
         """Enable the connection buttons"""
@@ -275,6 +282,23 @@ class MainWindow(tk.Frame, Sender):
         self.gcode.button_start.state(["disabled"])
         self.gcode.button_pause.state(["disabled"])
         self.gcode.button_stop.state(["disabled"])
+        self.gcode.file_scan = False
+
+    def _file_scanning(self):
+        """Scan directory for files that have been recently written"""
+        monitor = Inotify()
+        monitor.add_watch(GDIR, IN_CLOSE_WRITE)
+        while self.gcode.file_scan:
+            try:
+                for event in monitor.event_gen():
+                    if event is not None:
+                        filename = event[3]
+                        extension = os.path.splitext(filename)[1]
+                        if extension in (".gcode",):
+                            self.read_file(os.path.join(GDIR, filename))
+            finally:
+                monitor.remove_watch(GDIR)
+        monitor.remove_watch(GDIR)
 
     def select_filepath(self):
         """Use tkfiledialog to select the appropriate file"""
@@ -291,6 +315,10 @@ class MainWindow(tk.Frame, Sender):
         initial_dir = GDIR
         filepath = filedialog.askopenfilename(filetypes=valid_files,
                                               initialdir=initial_dir)
+        self.read_file(filepath)
+
+    def read_file(self, filepath):
+        """Take filepath, set filename StringVar"""
         self.load.filename.set(os.path.basename(filepath))
         with open(filepath, 'r') as gcode_file:
             self.gcode.file = []
