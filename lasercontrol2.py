@@ -20,7 +20,6 @@ from subprocess import check_output
 import sys
 import os
 import signal
-import datetime
 import pwd
 import time
 import random
@@ -28,9 +27,10 @@ import crypt
 import ttk
 import logging
 import logging.config
-import yaml
 
 from threading import Thread, enumerate as thread_enum, active_count
+import yaml
+
 from inotify.adapters import Inotify
 from inotify.constants import IN_CLOSE_WRITE
 
@@ -73,7 +73,7 @@ GRBL_SERIAL = "/dev/ttyAMA0"
 ####---- Classes ----####
 class MainWindow(tk.Frame, Sender):
     """Main window"""
-    # pylint: disable=too-many-ancestors
+    # pylint: disable=too-many-ancestors,too-many-instance-attributes
     def __init__(self, root, *args, **kwargs):
         ## Main window
         tk.Frame.__init__(self, root, *args, **kwargs)
@@ -247,7 +247,7 @@ class MainWindow(tk.Frame, Sender):
         try:
             username = get_user_uid(uid)
             realname = get_user_realname()
-        except BaseException, ex:
+        except BaseException as ex:
             messagebox.showerror("Error:", ex)
         current_user = is_current_user(username)
         if not current_user:
@@ -257,7 +257,7 @@ class MainWindow(tk.Frame, Sender):
         if current_user and uid and verified:
             try:
                 board_setup = gpio_setup()
-            except BaseException, ex:
+            except BaseException as ex:
                 messagebox.showerror("GPIO Error:", ex)
             if board_setup:
                 _ = disable_relay(OUT_PINS['laser'])
@@ -287,7 +287,7 @@ class MainWindow(tk.Frame, Sender):
         self.gcode.button_pause.state(["!disabled"])
         self.gcode.button_stop.state(["!disabled"])
         self.file_scan_thread = Thread(target=self._file_scanning,
-                                      name="FileScanThread")
+                                       name="FileScanThread")
         self.file_scan_thread.start()
         logger.info("File scanning started as %s", self.file_scan_thread.name)
 
@@ -369,7 +369,7 @@ class MainWindow(tk.Frame, Sender):
             return status
         except BaseException:
             self.serial = None
-            self.process = None
+            self.thread = None
             messagebox.showerror("Error Opening serial", sys.exc_info()[1])
             logger.exception("Failed to open serial")
         return False
@@ -553,7 +553,7 @@ def gpio_setup():
             logger.info("Configuring pin %d", pin)
             GPIO.pinMode(pin, GPIO.OUTPUT)
             GPIO.digitalWrite(pin, GPIO.HIGH)
-    except BaseException, message:
+    except BaseException as message:
         logger.exception("Failed to setup pins")
         raise
     if message:
@@ -633,15 +633,15 @@ def setup_logging(default_path='logging.yaml',
 
     path = default_path
     if os.path.exists(path):
-        with open(path, "rt") as f:
-            config = yaml.safe_load(f.read())
+        with open(path, "rt") as conf_file:
+            config = yaml.safe_load(conf_file.read())
         logging.config.dictConfig(config)
     else:
         logging.basicConfig(level=default_level)
 
 ####---- BODY ----####
 setup_logging()
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__) # pylint: disable=invalid-name
 if __name__ == '__main__':
     signal.signal(signal.SIGHUP, handler_cli)
     signal.signal(signal.SIGINT, handler_cli)

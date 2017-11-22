@@ -242,6 +242,9 @@ class Sender(object):
         """Process to perform I/O on GRBL
 
         This is borrowed heavily from stream.py of the GRBL project"""
+        # pylint: disable=too-many-statements,too-many-branches
+        # TODO: reduce number of statements
+        # TODO: reduce number of branches (somehow...)
         logger.debug("serial_io started")
         line_count = 0
         error_count = 0
@@ -249,7 +252,8 @@ class Sender(object):
         char_line = []
         line = None
 
-        while self.thread:
+        while self.thread: # pylint: disable=too-many-nested-blocks
+            # TODO: reduce number of nested blocks
             logger.debug(("serial_io pre DEBUG:",
                           {"line_count": line_count,
                            "error_Count": error_count,
@@ -325,8 +329,7 @@ class Sender(object):
                            "char_line": char_line,
                            "line": line,
                           }))
-        else:
-            logger.info("Closing down serial_io")
+        logger.info("Closing down serial_io")
 
 
     def __write_log_queue(self):
