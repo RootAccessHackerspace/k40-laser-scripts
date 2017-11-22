@@ -105,12 +105,14 @@ class Sender(object):
         """Stop the current run of Gcode"""
         logger.debug("Called Sender.stop_run()")
         logger.debug("Calling self.pause()")
-        #self.pause()
+        self.pause()
         logger.info("Stopping run")
         #self._stop = True
         logger.debug("Purging Grbl")
         self.purge_grbl()
-        logger.info(("Stopped", str(datetime.datetime.now())))
+        logger.debug("Clearing queue")
+        self.empty_queue()
+        logger.info("Run Stopped")
 
     def purge_grbl(self):
         """Purge the buffer of grbl"""
@@ -125,7 +127,7 @@ class Sender(object):
         self.unlock()
         logger.debug("Calling run_ended()")
         self.run_ended()
-        logger.info(("Grbl purged", str(datetime.datetime.now())))
+        logger.info("Grbl purged")
 
     def run_ended(self):
         """Called when run is finished"""
@@ -174,7 +176,7 @@ class Sender(object):
     def empty_queue(self):
         """Clear the queue"""
         logger.debug("Called Sender.empty_queue()")
-        logger.info(("Emptying Queue", self.queue.qsize()))
+        logger.info("Emptying Queue size %d", self.queue.qsize())
         while self.queue.qsize() > 0:
             logger.debug("Current qsize: %s", self.queue.qsize())
             try:
