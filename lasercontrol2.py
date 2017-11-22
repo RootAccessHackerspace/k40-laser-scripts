@@ -349,10 +349,12 @@ class MainWindow(tk.Frame, Sender):
         """Take filepath, set filename StringVar"""
         self.load.filename.set(os.path.basename(filepath))
         logger.debug("Reading %s into list", filepath)
-        with open(filepath, 'r') as gcode_file:
+        with open(filepath, 'rU') as gcode_file:
             self.gcode.file = []
             for line in gcode_file:
+                logger.debug("Appending %s to self.gcode.file", line)
                 self.gcode.file.append(line)
+            logger.debug("self.gcode.file length: %d", len(self.gcode.file))
 
     def open(self, device):
         """Open serial device"""
@@ -420,6 +422,7 @@ class MainWindow(tk.Frame, Sender):
 
     def __exit__(self):
         self.file_scan_thread = None
+        self.close()
 
 
 ####---- Generic Functions ----####
