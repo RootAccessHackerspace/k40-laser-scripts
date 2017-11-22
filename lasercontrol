@@ -1,3 +1,4 @@
 #!/bin/bash
 
-python /home/users/k40-laser-scripts/lasercontrol2.py
+cd /home/users/k40-laser-scripts
+python lasercontrol2.py
