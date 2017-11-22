@@ -430,7 +430,7 @@ class MainWindow(tk.Frame, Sender):
             self.close()
             time.sleep(1)
             self.root.destroy()
-            sys.exit(0)
+            shutdown()
 
 
 ####---- Generic Functions ----####
