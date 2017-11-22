@@ -26,6 +26,7 @@ import time
 import random
 import crypt
 import ttk
+
 from threading import Thread
 from inotify.adapters import Inotify
 from inotify.constants import IN_CLOSE_WRITE
@@ -42,6 +43,7 @@ except ImportError:
     import tkinter.filedialog as filedialog
 import wiringpi as GPIO
 
+
 ####---- Variables ----####
 # BCM pins for various functions
 ## SPI
@@ -54,6 +56,12 @@ IN_PINS = dict() # None currently
 
 # Directory where the gcode files will be stored from Visicut
 GDIR = "/home/users/Public"
+GCODE_EXT = (".gcode",
+             ".gc",
+             ".nc",
+             ".cnc",
+             ".cng",
+            )
 
 # GRBL serial port
 GRBL_SERIAL = "/dev/ttyAMA0"
@@ -294,7 +302,7 @@ class MainWindow(tk.Frame, Sender):
                     if event is not None:
                         filename = event[3]
                         extension = os.path.splitext(filename)[1]
-                        if extension in (".gcode",):
+                        if extension in GCODE_EXT:
                             self.read_file(os.path.join(GDIR, filename))
             finally:
                 monitor.remove_watch(GDIR)
