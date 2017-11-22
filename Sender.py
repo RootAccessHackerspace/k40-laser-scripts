@@ -57,7 +57,7 @@ class Sender(object):
 
     def open_serial(self, device):
         """Open serial port"""
-        logger.info(("Opening", str(datetime.datetime.now())))
+        logger.info("Opening serial device")
         self.serial = serial.serial_for_url(device,
                                             baudrate=115200,
                                             bytesize=serial.EIGHTBITS,
@@ -66,6 +66,7 @@ class Sender(object):
                                             timeout=SERIAL_TIMEOUT,
                                             xonxoff=False,
                                             rtscts=False)
+        logger.debug("Serial: %s", self.serial)
         # Toggle DTR to reset the arduino
         try:
             self.serial.setDTR(0)
@@ -73,6 +74,7 @@ class Sender(object):
             self.serial.setDTR(1)
             time.sleep(1)
         except IOError:
+            logger.debug("IOError on setDTR(), but not important")
             pass
         self.serial.write(b"\n\n")
         self.thread = Thread(target=self.serial_io, name="SerialIOThread")
@@ -82,7 +84,7 @@ class Sender(object):
 
     def close_serial(self):
         """Close serial port"""
-        logger.info(("Closing", str(datetime.datetime.now())))
+        logger.info("Closing serial device")
         if self.serial is None:
             return
         try:
@@ -134,7 +136,7 @@ class Sender(object):
         logger.debug("Called Sender.run_ended()")
         if self.running:
             logger.debug("self.running == True when run_ended()")
-            logger.info(("Run ended", str(datetime.datetime.now())))
+            logger.info("Run ended")
         logger.debug(("Run ended, pre", {"_pause": self._pause,
                                          "running": self.running,
                                         }
@@ -198,7 +200,7 @@ class Sender(object):
                                         }))
         logger.debug("Calling self.empty_queue()")
         self.empty_queue()
-        logger.info(("Initializing", str(datetime.datetime.now())))
+        logger.info("Initializing run")
         time.sleep(1) # Give everything a bit of time
 
     def pause(self):
@@ -214,7 +216,7 @@ class Sender(object):
             self.resume()
         else:
             logger.debug("_pause==False, so pausing")
-            logger.info(("Pausing", str(datetime.datetime.now())))
+            logger.info("Pausing run")
             self.serial.write(b"!")
             self.serial.flush()
             self._pause = True
@@ -230,7 +232,7 @@ class Sender(object):
                                      }))
         if self.serial is None:
             return
-        logger.info(("Resuming", str(datetime.datetime.now())))
+        logger.info("Resuming run")
         self.serial.write(b"~")
         self.serial.flush()
         self._pause = False
@@ -292,7 +294,7 @@ class Sender(object):
                                   }))
                     out_temp = self.serial.readline().strip()
                     if out_temp.find("ok") < 0 and out_temp.find("error") < 0:
-                        logger.info("Grbl MSG: %s", out_temp)
+                        logger.debug("Grbl MSG: %s", out_temp)
                     else:
                         if out_temp.find("error") >= 0:
                             error_count += 1
@@ -315,7 +317,7 @@ class Sender(object):
             while line_count > gcode_count:
                 out_temp = self.serial.readline().strip()
                 if out_temp.find("ok") < 0 and out_temp.find("error") < 0:
-                    logger.info("Grbl MSG: %s", out_temp)
+                    logger.debug("Grbl MSG: %s", out_temp)
                 else:
                     if out_temp.find("error") >= 0:
                         error_count += 1
