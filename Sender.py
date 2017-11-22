@@ -10,8 +10,8 @@ __email__ = "d.armitage89@gmail.com"
 # https://github.com/vlachoudis/bCNC
 
 ####---- Import ----####
-from multiprocessing import Process, Queue
-from Queue import Empty
+from threading import Thread
+from Queue import Queue, Empty
 
 import re
 import logging
@@ -39,7 +39,7 @@ class Sender(object):
         self.log = Queue() # What is returned from GRBL
         self.queue = Queue() # What to send to GRBL
         self.serial = None
-        self.process = None
+        self.thread = None
 
         self.running = False
         self._stop = False # Set to True to stop current run
@@ -57,7 +57,7 @@ class Sender(object):
 
     def open_serial(self, device):
         """Open serial port"""
-        self.log.put(("Opening", str(datetime.datetime.now())))
+        logger.info(("Opening", str(datetime.datetime.now())))
         self.serial = serial.serial_for_url(device,
                                             baudrate=115200,
                                             bytesize=serial.EIGHTBITS,
@@ -75,25 +75,27 @@ class Sender(object):
         except IOError:
             pass
         self.serial.write(b"\n\n")
-        self.process = Process(target=self.serial_io)
-        self.process.start()
+        self.thread = Thread(target=self.serial_io, name="SerialIOThread")
+        self.thread.start()
+        logger.info("I/O thread started: %s", self.thread.name)
         return True
 
     def close_serial(self):
         """Close serial port"""
-        self.log.put(("Closing", str(datetime.datetime.now())))
+        logger.info(("Closing", str(datetime.datetime.now())))
         if self.serial is None:
             return
         try:
             self.stop_run()
         except BaseException:
             pass
-        self.queue.put(("KILL",))
-        self.process = None
+        logger.info("Stopping thread %s", self.thread.name)
+        self.thread = None
+        time.sleep(1)
         try:
             self.serial.close()
         except BaseException:
-            raise
+            logger.exception("Error closing serial")
         self.serial = None
         if OUTPUT_LOG_QUEUE:
             self.__write_log_queue()
@@ -108,7 +110,7 @@ class Sender(object):
         #self._stop = True
         logger.debug("Purging Grbl")
         self.purge_grbl()
-        self.log.put(("Stopped", str(datetime.datetime.now())))
+        logger.info(("Stopped", str(datetime.datetime.now())))
 
     def purge_grbl(self):
         """Purge the buffer of grbl"""
@@ -123,14 +125,14 @@ class Sender(object):
         self.unlock()
         logger.debug("Calling run_ended()")
         self.run_ended()
-        self.log.put(("Grbl purged", str(datetime.datetime.now())))
+        logger.info(("Grbl purged", str(datetime.datetime.now())))
 
     def run_ended(self):
         """Called when run is finished"""
         logger.debug("Called Sender.run_ended()")
         if self.running:
             logger.debug("self.running == True when run_ended()")
-            self.log.put(("Run ended", str(datetime.datetime.now())))
+            logger.info(("Run ended", str(datetime.datetime.now())))
         logger.debug(("Run ended, pre", {"_pause": self._pause,
                                          "running": self.running,
                                         }
@@ -172,7 +174,7 @@ class Sender(object):
     def empty_queue(self):
         """Clear the queue"""
         logger.debug("Called Sender.empty_queue()")
-        self.log.put(("Emptying Queue", self.queue.qsize()))
+        logger.info(("Emptying Queue", self.queue.qsize()))
         while self.queue.qsize() > 0:
             logger.debug("Current qsize: %s", self.queue.qsize())
             try:
@@ -194,7 +196,7 @@ class Sender(object):
                                         }))
         logger.debug("Calling self.empty_queue()")
         self.empty_queue()
-        self.log.put(("Initializing", str(datetime.datetime.now())))
+        logger.info(("Initializing", str(datetime.datetime.now())))
         time.sleep(1) # Give everything a bit of time
 
     def pause(self):
@@ -210,7 +212,7 @@ class Sender(object):
             self.resume()
         else:
             logger.debug("_pause==False, so pausing")
-            self.log.put(("Pausing", str(datetime.datetime.now())))
+            logger.info(("Pausing", str(datetime.datetime.now())))
             self.serial.write(b"!")
             self.serial.flush()
             self._pause = True
@@ -226,7 +228,7 @@ class Sender(object):
                                      }))
         if self.serial is None:
             return
-        self.log.put(("Resuming", str(datetime.datetime.now())))
+        logger.info(("Resuming", str(datetime.datetime.now())))
         self.serial.write(b"~")
         self.serial.flush()
         self._pause = False
@@ -245,7 +247,7 @@ class Sender(object):
         char_line = []
         line = None
 
-        while self.process:
+        while self.thread:
             logger.debug(("serial_io pre DEBUG:",
                           {"line_count": line_count,
                            "error_Count": error_count,
@@ -259,8 +261,6 @@ class Sender(object):
                 line = None
             logger.debug(("serial_io dur DEBUG:", {"line": line}))
             if isinstance(line, tuple):
-                if line[0] == "KILL":
-                    self.process = None
                 line = None
             if line is not None:
                 line_count += 1
