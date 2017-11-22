@@ -81,6 +81,7 @@ class MainWindow(tk.Frame, Sender):
         self.root = root
         self.root.geometry("400x300+0-5")
         self.root.resizable(width=False, height=False)
+        self.root.protocol("WM_DELETE_WINDOW", self.__shutdown)
         self.grid()
 
         ## Sub-frame for just the GPIO controls
@@ -420,9 +421,16 @@ class MainWindow(tk.Frame, Sender):
     #    """Clean shutdown"""
     #    Sender.close_serial(self)
 
-    def __exit__(self):
-        self.file_scan_thread = None
-        self.close()
+    def __shutdown(self):
+        message = """Are you sure you want to close?
+        Note: Auth will be lost.
+        """
+        if messagebox.askokcancel("Quit?", message):
+            self.file_scan_thread = None
+            self.close()
+            time.sleep(1)
+            self.root.destroy()
+            sys.exit(0)
 
 
 ####---- Generic Functions ----####
@@ -594,8 +602,6 @@ def main():
     """Main function"""
     root = tk.Tk()
     MainWindow(root)
-    root.protocol("WM_DELETE_WINDOW", lambda: handler_gui(root))
-    logger.debug("GUI signal handler set up")
     root.mainloop()
 
 def shutdown():
@@ -608,7 +614,9 @@ def shutdown():
         logger.exception("Error shutting down GPIO")
         print("Something went wrong shutting down: {}".format(ex))
         print("The GPIO probably never even got initialized...")
-    logger.info("%d threads still alive: %s", active_count(), thread_enum())
+    logger.info("%d thread(s) still alive: %s", active_count(), thread_enum())
+    if active_count() > 1:
+        logger.critical("CANNOT SHUTDOWN PROPERLY")
     sys.exit(0)
 
 def handler_cli(signum, frame):
@@ -617,19 +625,6 @@ def handler_cli(signum, frame):
     print("Signal {}".format(signum))
     _ = frame
     shutdown()
-
-def handler_gui(root):
-    """Signal handler for Tkinter"""
-    logger.debug("handler_gui() called")
-    message = ("Are you sure you want to quit?\n"
-               "Authorization will be lost, and the power supply & "
-               "laser will be turned off.")
-    if messagebox.askokcancel("Quit", message):
-        logger.info("Asked to quit")
-        logger.debug("Calling root.destroy()")
-        root.destroy()
-        logger.debug("Calling shutdown()")
-        shutdown()
 
 def setup_logging(default_path='logging.yaml',
                   default_level=logging.INFO
