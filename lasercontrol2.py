@@ -30,7 +30,7 @@ import logging
 import logging.config
 import yaml
 
-from threading import Thread
+from threading import Thread, enumerate as thread_enum, active_count
 from inotify.adapters import Inotify
 from inotify.constants import IN_CLOSE_WRITE
 
@@ -134,7 +134,7 @@ class MainWindow(tk.Frame, Sender):
                                             command=self.stop_run,
                                            )
         self.gcode.file = None
-        self.gcode.file_scan = False
+        self.file_scan_thread = None
         ### Connection/Status buttons and label
         self.conn.label_status = tk.Label(self.conn, text="Status:")
         self.conn.status = tk.StringVar()
@@ -161,6 +161,7 @@ class MainWindow(tk.Frame, Sender):
         """Initialization of the GUI"""
         self.root.title("Laser Control")
         self.__create_buttons()
+        logger.info("Window started")
 
     def __create_buttons(self):
         """Make all buttons visible and set appropriate values"""
@@ -214,6 +215,8 @@ class MainWindow(tk.Frame, Sender):
         self.load.label_file.grid(column=20, row=10)
 
     def _switch_pin(self, item):
+        """Change pin state & set laser/psu StringVar's"""
+        logger.debug("Changing pin for %s", item)
         pin = OUT_PINS[item]
         switch_pin(pin)
         self.gpio.laser_label.set(relay_state(OUT_PINS['laser']))
@@ -244,7 +247,7 @@ class MainWindow(tk.Frame, Sender):
             username = get_user_uid(uid)
             realname = get_user_realname()
         except BaseException, ex:
-            messagebox.showerror("Error", ex)
+            messagebox.showerror("Error:", ex)
         current_user = is_current_user(username)
         if not current_user:
             messagebox.showerror("Incorrect user",
@@ -254,7 +257,7 @@ class MainWindow(tk.Frame, Sender):
             try:
                 board_setup = gpio_setup()
             except BaseException, ex:
-                messagebox.showerror("GPIO Error", ex)
+                messagebox.showerror("GPIO Error:", ex)
             if board_setup:
                 _ = disable_relay(OUT_PINS['laser'])
                 _ = disable_relay(OUT_PINS['psu'])
@@ -267,6 +270,7 @@ class MainWindow(tk.Frame, Sender):
             self.conn.button_conn.state(["!disabled"])
             messagebox.showinfo("Done",
                                 "Everything is setup, {}".format(realname))
+            logger.info("user %s authorized", username)
         else:
             messagebox.showerror("Error", "Something went wrong")
 
@@ -281,9 +285,10 @@ class MainWindow(tk.Frame, Sender):
         self.gcode.button_start.state(["!disabled"])
         self.gcode.button_pause.state(["!disabled"])
         self.gcode.button_stop.state(["!disabled"])
-        self.gcode.file_scan = True
-        file_scan_thread = Thread(target=self._file_scanning)
-        file_scan_thread.start()
+        self.file_scan_thread = Thread(target=self._file_scanning,
+                                      name="FileScanThread")
+        self.file_scan_thread.start()
+        logger.info("File scanning started as %s", self.file_scan_thread.name)
 
     def _deactivate_conn(self):
         """Enable the connection buttons"""
@@ -293,23 +298,35 @@ class MainWindow(tk.Frame, Sender):
         self.gcode.button_start.state(["disabled"])
         self.gcode.button_pause.state(["disabled"])
         self.gcode.button_stop.state(["disabled"])
-        self.gcode.file_scan = False
+        logger.info("Stopping file scanning %s", self.file_scan_thread)
+        self.file_scan_thread = None
+
 
     def _file_scanning(self):
         """Scan directory for files that have been recently written"""
         monitor = Inotify()
         monitor.add_watch(GDIR, IN_CLOSE_WRITE)
-        while self.gcode.file_scan:
+        logger.debug("Automatic file scanning will start: %s",
+                     bool(self.file_scan_thread))
+        while self.file_scan_thread:
             try:
                 for event in monitor.event_gen():
                     if event is not None:
                         filename = event[3]
+                        logger.debug("File creation detected: %s", filename)
                         extension = os.path.splitext(filename)[1]
                         if extension in GCODE_EXT:
+                            logger.info("Auto-loading %s", filename)
                             self.read_file(os.path.join(GDIR, filename))
+                    elif not self.file_scan_thread:
+                        logger.debug("Breaking _file_scanning()")
+                        break
             finally:
+                logger.debug("'finally' removing watched directory")
                 monitor.remove_watch(GDIR)
+        logger.debug("Removing watched directory")
         monitor.remove_watch(GDIR)
+        logger.debug("_file_scanning() thread is now shut down")
 
     def select_filepath(self):
         """Use tkfiledialog to select the appropriate file"""
@@ -331,6 +348,7 @@ class MainWindow(tk.Frame, Sender):
     def read_file(self, filepath):
         """Take filepath, set filename StringVar"""
         self.load.filename.set(os.path.basename(filepath))
+        logger.debug("Reading %s into list", filepath)
         with open(filepath, 'r') as gcode_file:
             self.gcode.file = []
             for line in gcode_file:
@@ -340,10 +358,7 @@ class MainWindow(tk.Frame, Sender):
         """Open serial device"""
         try:
             status = self.open_serial(device)
-            self.log.put(("Opening serial",
-                          str(datetime.datetime.now()),
-                          status
-                         ))
+            logger.info("Opened serial: %s", status)
             self._activate_conn()
             self.conn.button_conn.configure(command=self.close)
             self.conn.status.set("Connected")
@@ -353,11 +368,12 @@ class MainWindow(tk.Frame, Sender):
             self.serial = None
             self.process = None
             messagebox.showerror("Error Opening serial", sys.exc_info()[1])
+            logger.exception("Failed to open serial")
         return False
 
     def close(self):
         """Close serial device"""
-        self.log.put(("Closing serial", str(datetime.datetime.now())))
+        logger.info("Closing serial")
         self.close_serial()
         self._deactivate_conn()
         self.conn.button_conn.configure(command=lambda: self.open(GRBL_SERIAL))
@@ -375,9 +391,10 @@ class MainWindow(tk.Frame, Sender):
 
     def run(self, lines=None):
         """Send gcode file to the laser"""
-        self.log.put(("MainApplication.run()", str(datetime.datetime.now())))
+        logger.info("run() called")
         if self.serial is None:
             messagebox.showerror("Serial Error", "GRBL is not connected")
+            logger.error("Serial device not set!")
             return
         #if self.running:
         #    if self._pause:
@@ -388,20 +405,22 @@ class MainWindow(tk.Frame, Sender):
         #    return
         self.init_run()
         if lines is not None:
+            logger.info("Lines to send: %d", len(lines))
             for line in lines:
                 if line is not None:
-                    if isinstance(line, (str, unicode)):
-                        self.log.put(("Queued", line))
-                        self.queue.put(line+"\n")
-                    else:
-                        self.log.put(("Queued", line))
-                        self.queue.put(line)
+                    logger.debug("Queued line: %s", line)
+                    self.log.put(("Queued", line))
+                    self.queue.put(line)
         #self.log.put(("Queued", "WAIT"))
         #self.queue.put(("WAIT",))
 
     #def destroy(self):
     #    """Clean shutdown"""
     #    Sender.close_serial(self)
+
+    def __exit__(self):
+        self.file_scan_thread = None
+
 
 ####---- Generic Functions ----####
 ### NFC-related
@@ -421,6 +440,7 @@ def initialize_nfc_reader():
             chip_firm = chip_line.split(" ")[2]
             break
         except IndexError:
+            logger.debug("PN532 board not awake yet...")
             time.sleep(1)
     else:
         chip_firm, chip_name = None, None
@@ -447,6 +467,7 @@ def get_uid_noblock(dummy=False):
         num_found = iso_found[0].split()[0]
         # Check for only one tag present
         if num_found != "1":
+            logger.info("Incorrect number of tags: %d", num_found)
             uid_ascii = None
         else:
             nfcid_line = [line for line in raw_output.split("\n")
@@ -483,6 +504,7 @@ def get_user_uid(uid, cuid_file="/etc/pam_nfc.conf", dummy=False):
     """Takes in a UID string, returns string of username."""
     if not dummy:
         if os.getuid() != 0:
+            logger.error("User does not have proper permission")
             raise OSError("Check your priviledge")
     cuidexist = os.path.isfile(cuid_file)
     if not cuidexist:
@@ -517,9 +539,11 @@ def gpio_setup():
     message = None
     try:
         for _, pin in OUT_PINS.iteritems():
+            logger.info("Configuring pin %d", pin)
             GPIO.pinMode(pin, GPIO.OUTPUT)
             GPIO.digitalWrite(pin, GPIO.HIGH)
     except BaseException, message:
+        logger.exception("Failed to setup pins")
         raise
     if message:
         board = False
@@ -532,8 +556,10 @@ def disable_relay(pin, disabled=True):
 
     disabled=False will enable the relay."""
     if disabled:
+        logger.debug("Disabling pin %d", pin)
         GPIO.digitalWrite(pin, GPIO.HIGH)
     else:
+        logger.debug("Enabling pin %d", pin)
         GPIO.digitalWrite(pin, GPIO.LOW)
     return GPIO.digitalRead(pin)
 
@@ -547,15 +573,18 @@ def relay_state(pin):
 
 def switch_pin(pin):
     """Take pin, switch pin state"""
+    logger.info("Switching pin %d", pin)
     cur_state = GPIO.digitalRead(pin)
     new_state = not cur_state
     GPIO.digitalWrite(pin, new_state)
 
 def toggle_pin(pin):
     """Take pinn, switch pin states for short period of time"""
+    logger.info("Toggling pin %d", pin)
     switch_pin(pin)
     time.sleep(0.25)
     switch_pin(pin)
+    logger.debug("Pin %d toggled", pin)
 
 ####---- MAIN ----####
 def main():
@@ -563,31 +592,40 @@ def main():
     root = tk.Tk()
     MainWindow(root)
     root.protocol("WM_DELETE_WINDOW", lambda: handler_gui(root))
+    logger.debug("GUI signal handler set up")
     root.mainloop()
 
 def shutdown():
     """Shutdown commands"""
+    logger.debug("shutdown() called")
     try:
         _ = disable_relay(OUT_PINS['laser'])
         _ = disable_relay(OUT_PINS['psu'])
     except AttributeError as ex:
+        logger.exception("Error shutting down GPIO")
         print("Something went wrong shutting down: {}".format(ex))
         print("The GPIO probably never even got initialized...")
+    logger.info("%d threads still alive: %s", active_count(), thread_enum())
     sys.exit(0)
 
 def handler_cli(signum, frame):
     """Signal handler"""
+    logger.debug("handler_cli() called")
     print("Signal {}".format(signum))
     _ = frame
     shutdown()
 
 def handler_gui(root):
     """Signal handler for Tkinter"""
+    logger.debug("handler_gui() called")
     message = ("Are you sure you want to quit?\n"
                "Authorization will be lost, and the power supply & "
                "laser will be turned off.")
     if messagebox.askokcancel("Quit", message):
+        logger.info("Asked to quit")
+        logger.debug("Calling root.destroy()")
         root.destroy()
+        logger.debug("Calling shutdown()")
         shutdown()
 
 def setup_logging(default_path='logging.yaml',
@@ -605,9 +643,11 @@ def setup_logging(default_path='logging.yaml',
 
 ####---- BODY ----####
 setup_logging()
+logger = logging.getLogger(__name__)
 if __name__ == '__main__':
     signal.signal(signal.SIGHUP, handler_cli)
     signal.signal(signal.SIGINT, handler_cli)
     signal.signal(signal.SIGTERM, handler_cli)
+    logger.debug("CLI signal handlers set up")
 
     main()
