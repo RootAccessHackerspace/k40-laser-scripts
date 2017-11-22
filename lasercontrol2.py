@@ -26,6 +26,9 @@ import time
 import random
 import crypt
 import ttk
+import logging
+import logging.config
+import yaml
 
 from threading import Thread
 from inotify.adapters import Inotify
@@ -587,7 +590,21 @@ def handler_gui(root):
         root.destroy()
         shutdown()
 
+def setup_logging(default_path='logging.yaml',
+                  default_level=logging.INFO
+                 ):
+    """Setup logging configuration"""
+
+    path = default_path
+    if os.path.exists(path):
+        with open(path, "rt") as f:
+            config = yaml.safe_load(f.read())
+        logging.config.dictConfig(config)
+    else:
+        logging.basicConfig(level=default_level)
+
 ####---- BODY ----####
+setup_logging()
 if __name__ == '__main__':
     signal.signal(signal.SIGHUP, handler_cli)
     signal.signal(signal.SIGINT, handler_cli)

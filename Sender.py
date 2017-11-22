@@ -10,17 +10,16 @@ __email__ = "d.armitage89@gmail.com"
 # https://github.com/vlachoudis/bCNC
 
 ####---- Import ----####
-from multiprocessing import Process, Queue, log_to_stderr
+from multiprocessing import Process, Queue
 from Queue import Empty
 
-import sys
 import re
 import logging
 import time
 import datetime
 import serial
 
-logger = log_to_stderr() #pylint: disable=invalid-name
+logger = logging.getLogger(__name__) #pylint: disable=invalid-name
 logger.setLevel(logging.INFO)
 
 #from GrblCodes import ALARM_CODES, ERROR_CODES
