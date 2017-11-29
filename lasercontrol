@@ -1,3 +1,5 @@
 #!/bin/bash
 
-/usr/bin/xterm -geometry 80x20 -e 'python /home/pi/Public/k40-laser-scripts/lasercontrol2.py; true'
+cd /home/users/k40-laser-scripts
+source env/bin/activate
+python lasercontrol2.py

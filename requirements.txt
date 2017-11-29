@@ -1,4 +1,8 @@
+inotify==0.2.8
 pipdeptree==0.10.1
+pudb==2017.1.4
 pylint==1.7.4
+pyserial==3.4
+PyYAML==3.12
 setuptools==5.5.1
 wiringpi==2.44.4

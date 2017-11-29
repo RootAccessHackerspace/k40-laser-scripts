@@ -478,7 +478,7 @@ def get_uid_noblock(dummy=False):
         num_found = iso_found[0].split()[0]
         # Check for only one tag present
         if num_found != "1":
-            logger.info("Incorrect number of tags: %d", num_found)
+            logger.info("Incorrect number of tags: %s", num_found)
             uid_ascii = None
         else:
             nfcid_line = [line for line in raw_output.split("\n")
