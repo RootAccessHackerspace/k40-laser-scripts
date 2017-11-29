@@ -1,4 +1,5 @@
 #!/bin/bash
 
 cd /home/users/k40-laser-scripts
+source env/bin/activate
 python lasercontrol2.py
