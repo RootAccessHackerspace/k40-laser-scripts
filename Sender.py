@@ -20,7 +20,6 @@ import datetime
 import serial
 
 logger = logging.getLogger(__name__) #pylint: disable=invalid-name
-logger.setLevel(logging.INFO)
 
 #from GrblCodes import ALARM_CODES, ERROR_CODES
 
