@@ -54,7 +54,7 @@ class Sender(object):
         # will remain the same.
         self._sum_command_lens = 0
 
-    def open_serial(self, device):
+    def _open_serial(self, device):
         """Open serial port"""
         logger.info("Opening serial device")
         self.serial = serial.serial_for_url(device,
@@ -81,13 +81,13 @@ class Sender(object):
         logger.info("I/O thread started: %s", self.thread.name)
         return True
 
-    def close_serial(self):
+    def _close_serial(self):
         """Close serial port"""
         logger.info("Closing serial device")
         if self.serial is None:
             return
         try:
-            self.stop_run()
+            self._stop_run()
         except BaseException:
             pass
         logger.info("Stopping thread %s", self.thread.name)
@@ -102,39 +102,39 @@ class Sender(object):
             self.__write_log_queue()
         return True
 
-    def stop_run(self):
+    def _stop_run(self):
         """Stop the current run of Gcode"""
-        logger.debug("Called Sender.stop_run()")
-        logger.debug("Calling self.pause()")
-        self.pause()
+        logger.debug("Called Sender._stop_run()")
+        logger.debug("Calling self._pause()")
+        self._pause()
         logger.info("Stopping run")
         #self._stop = True
         logger.debug("Purging Grbl")
-        self.purge_grbl()
+        self._purge_grbl()
         logger.debug("Clearing queue")
-        self.empty_queue()
+        self._empty_queue()
         logger.info("Run Stopped")
 
-    def purge_grbl(self):
+    def _purge_grbl(self):
         """Purge the buffer of grbl"""
-        logger.debug("Called Sender.purge_grbl()")
+        logger.debug("Called Sender._purge_grbl()")
         logger.debug("Sending control-code pause")
         self.serial.write(b"!") # Immediately pause
         self.serial.flush()
         time.sleep(1)
-        logger.debug("Calling self.soft_reset()")
-        self.soft_reset()
-        logger.debug("Calling self.unlock()")
-        self.unlock()
-        logger.debug("Calling run_ended()")
-        self.run_ended()
+        logger.debug("Calling self._soft_reset()")
+        self._soft_reset()
+        logger.debug("Calling self._unlock()")
+        self._unlock()
+        logger.debug("Calling _run_ended()")
+        self._run_ended()
         logger.info("Grbl purged")
 
-    def run_ended(self):
+    def _run_ended(self):
         """Called when run is finished"""
-        logger.debug("Called Sender.run_ended()")
+        logger.debug("Called Sender._run_ended()")
         if self.running:
-            logger.debug("self.running == True when run_ended()")
+            logger.debug("self.running == True when _run_ended()")
             logger.info("Run ended")
         logger.debug(("Run ended, pre", {"_pause": self._pause,
                                          "running": self.running,
@@ -146,26 +146,26 @@ class Sender(object):
                                           "running": self.running,
                                          }))
 
-    def soft_reset(self):
+    def _soft_reset(self):
         """Send GRBL reset command"""
-        logger.debug("Called Sender.soft_reset()")
+        logger.debug("Called Sender._soft_reset()")
         if self.serial:
             self.serial.write(b"\030")
             logger.debug("Sent b'\030'")
 
-    def unlock(self):
+    def _unlock(self):
         """Send GRBL unlock command"""
-        logger.debug("Called Sender.unlock()")
-        self.send_gcode("$X")
+        logger.debug("Called Sender._unlock()")
+        self._send_gcode("$X")
 
-    def home(self):
+    def _home(self):
         """Send GRBL home command"""
-        logger.debug("Called Sender.home()")
-        self.send_gcode("$H")
+        logger.debug("Called Sender._home()")
+        self._send_gcode("$H")
 
-    def send_gcode(self, command):
+    def _send_gcode(self, command):
         """Send GRBL a Gcode/command line"""
-        logger.debug("Called Sender.send_gcode() with %s", command)
+        logger.debug("Called Sender._send_gcode() with %s", command)
         # Do nothing if not actually up
         logger.debug(("send_gcode", {"serial": self.serial,
                                      "running": self.running
@@ -174,9 +174,9 @@ class Sender(object):
             logger.debug("self.serial == True")
             self.queue.put(command+"\n")
 
-    def empty_queue(self):
+    def _empty_queue(self):
         """Clear the queue"""
-        logger.debug("Called Sender.empty_queue()")
+        logger.debug("Called Sender._empty_queue()")
         logger.info("Emptying Queue size %d", self.queue.qsize())
         while self.queue.qsize() > 0:
             logger.debug("Current qsize: %s", self.queue.qsize())
@@ -186,9 +186,9 @@ class Sender(object):
                 logger.debug("Emptying Queue, qsize == 0")
                 break
 
-    def init_run(self):
+    def _init_run(self):
         """Initialize a gcode run"""
-        logger.debug("Called Sender.init_run()")
+        logger.debug("Called Sender._init_run()")
         logger.debug(("init_run, pre", {"_pause": self._pause,
                                         "running": self.running
                                        }))
@@ -197,22 +197,22 @@ class Sender(object):
         logger.debug(("init_run, post", {"_pause": self._pause,
                                          "running": self.running
                                         }))
-        logger.debug("Calling self.empty_queue()")
-        self.empty_queue()
+        logger.debug("Calling self._empty_queue()")
+        self._empty_queue()
         logger.info("Initializing run")
         time.sleep(1) # Give everything a bit of time
 
-    def pause(self):
+    def _pause(self):
         """Pause run"""
-        logger.debug("Called Sender.pause()")
+        logger.debug("Called Sender._pause()")
         logger.debug(("pause, pre", {"_serial": self.serial,
                                      "_pause": self._pause,
                                     }))
         if self.serial is None:
             return
         if self._pause:
-            logger.debug("Calling self.resume() b/c _pause==True")
-            self.resume()
+            logger.debug("Calling self._resume() b/c _pause==True")
+            self._resume()
         else:
             logger.debug("_pause==False, so pausing")
             logger.info("Pausing run")
@@ -223,9 +223,9 @@ class Sender(object):
                                       "_pause": self._pause,
                                      }))
 
-    def resume(self):
+    def _resume(self):
         """Resume a run"""
-        logger.debug("Called Sender.resume()")
+        logger.debug("Called Sender._resume()")
         logger.debug(("resume, pre", {"_serial": self.serial,
                                       "_pause": self._pause,
                                      }))
@@ -239,7 +239,7 @@ class Sender(object):
                                        "_pause": self._pause,
                                       }))
 
-    def serial_io(self):
+    def _serial_io(self):
         """Process to perform I/O on GRBL
 
         This is borrowed heavily from stream.py of the GRBL project"""

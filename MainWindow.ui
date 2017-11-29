@@ -1,0 +1,432 @@
+<?xml version='1.0' encoding='utf-8'?>
+<interface>
+  <object class="tk.Toplevel" id="mainwindow">
+    <property name="height">200</property>
+    <property name="resizable">none</property>
+    <property name="title" translatable="yes">Laser Control</property>
+    <property name="width">200</property>
+    <child>
+      <object class="ttk.Labelframe" id="frame_conn">
+        <property name="height">200</property>
+        <property name="text" translatable="yes">Connection</property>
+        <property name="width">200</property>
+        <layout>
+          <property name="column">0</property>
+          <property name="propagate">True</property>
+          <property name="row">0</property>
+          <property name="sticky">n</property>
+        </layout>
+        <child>
+          <object class="ttk.Button" id="button_conn">
+            <property name="command">_open</property>
+            <property name="state">disabled</property>
+            <property name="textvariable">string:connect_b</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="propagate">True</property>
+              <property name="row">0</property>
+              <property name="sticky">n</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Button" id="button_home">
+            <property name="command">_home</property>
+            <property name="state">disabled</property>
+            <property name="text" translatable="yes">Home</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="propagate">True</property>
+              <property name="row">1</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Button" id="button_soft_reset">
+            <property name="command">_soft_reset</property>
+            <property name="state">disabled</property>
+            <property name="text" translatable="yes">Soft Reset</property>
+            <layout>
+              <property name="column">1</property>
+              <property name="propagate">True</property>
+              <property name="row">1</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Button" id="button_unlock">
+            <property name="command">_unlock</property>
+            <property name="state">disabled</property>
+            <property name="text" translatable="yes">Unlock</property>
+            <layout>
+              <property name="column">2</property>
+              <property name="propagate">True</property>
+              <property name="row">1</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Frame" id="status_frame">
+            <property name="height">200</property>
+            <property name="width">200</property>
+            <layout>
+              <property name="column">1</property>
+              <property name="columnspan">7</property>
+              <property name="propagate">True</property>
+              <property name="row">0</property>
+              <property name="sticky">w</property>
+              <rows>
+                <row id="0">
+                  <property name="minsize">62</property>
+                </row>
+              </rows>
+            </layout>
+            <child>
+              <object class="ttk.Label" id="label_status">
+                <property name="text" translatable="yes">Status:</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                  <property name="sticky">nw</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="tk.Label" id="status_display">
+                <property name="height">3</property>
+                <property name="height">3</property>
+                <property name="justify">center</property>
+                <property name="relief">sunken</property>
+                <property name="textvariable">string:status</property>
+                <property name="width">15</property>
+                <property name="wraplength">120</property>
+                <layout>
+                  <property name="column">1</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                  <property name="sticky">nw</property>
+                </layout>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="ttk.Labelframe" id="frame_gpio">
+        <property name="height">200</property>
+        <property name="text" translatable="yes">GPIO Control</property>
+        <property name="width">200</property>
+        <layout>
+          <property name="column">1</property>
+          <property name="propagate">True</property>
+          <property name="row">0</property>
+          <property name="rowspan">2</property>
+          <property name="sticky">n</property>
+        </layout>
+        <child>
+          <object class="ttk.Button" id="button_auth">
+            <property name="command">_authorize</property>
+            <property name="compound">top</property>
+            <property name="state">normal</property>
+            <property name="text" translatable="yes">Authorize</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="propagate">True</property>
+              <property name="row">0</property>
+              <property name="sticky">w</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Button" id="button_reset_hard">
+            <property name="command">_hard_reset</property>
+            <property name="state">disabled</property>
+            <property name="text" translatable="yes">Hard Reset</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="propagate">True</property>
+              <property name="row">1</property>
+              <property name="sticky">w</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Checkbutton" id="check_psu">
+            <property name="command">_switch_psu</property>
+            <property name="state">disabled</property>
+            <property name="text" translatable="yes">Power Supply</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="propagate">True</property>
+              <property name="row">2</property>
+              <property name="sticky">w</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Checkbutton" id="check_laser">
+            <property name="command">_switch_laser</property>
+            <property name="state">disabled</property>
+            <property name="text" translatable="yes">Laser</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="propagate">True</property>
+              <property name="row">3</property>
+              <property name="sticky">w</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Label" id="label_psu">
+            <property name="textvariable">string:psu_label</property>
+            <property name="width">3</property>
+            <layout>
+              <property name="column">1</property>
+              <property name="propagate">True</property>
+              <property name="row">2</property>
+              <property name="sticky">w</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Label" id="label_laser">
+            <property name="textvariable">string:laser_label</property>
+            <property name="width">3</property>
+            <layout>
+              <property name="column">1</property>
+              <property name="propagate">True</property>
+              <property name="row">3</property>
+              <property name="sticky">w</property>
+            </layout>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="ttk.Labelframe" id="frame_gcode">
+        <property name="height">200</property>
+        <property name="text" translatable="yes">GCODE control</property>
+        <property name="width">200</property>
+        <layout>
+          <property name="column">0</property>
+          <property name="propagate">True</property>
+          <property name="row">1</property>
+          <rows>
+            <row id="0">
+              <property name="weight">0</property>
+            </row>
+          </rows>
+          <columns>
+            <column id="0">
+              <property name="weight">0</property>
+            </column>
+          </columns>
+        </layout>
+        <child>
+          <object class="ttk.Button" id="button_start">
+            <property name="command">_run</property>
+            <property name="compound">top</property>
+            <property name="image">button_play.gif</property>
+            <property name="state">disabled</property>
+            <property name="text" translatable="yes">Start</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="propagate">True</property>
+              <property name="row">0</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Button" id="button_pause">
+            <property name="command">_pause</property>
+            <property name="compound">top</property>
+            <property name="image">button_pause.gif</property>
+            <property name="state">disabled</property>
+            <property name="text" translatable="yes">Pause</property>
+            <layout>
+              <property name="column">1</property>
+              <property name="propagate">True</property>
+              <property name="row">0</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Button" id="button_stop">
+            <property name="command">_stop_run</property>
+            <property name="compound">top</property>
+            <property name="image">button_stop.gif</property>
+            <property name="state">disabled</property>
+            <property name="text" translatable="yes">Stop</property>
+            <layout>
+              <property name="column">2</property>
+              <property name="propagate">True</property>
+              <property name="row">0</property>
+            </layout>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="ttk.Labelframe" id="frame_file">
+        <property name="height">200</property>
+        <property name="text" translatable="yes">File</property>
+        <property name="width">200</property>
+        <layout>
+          <property name="column">0</property>
+          <property name="columnspan">2</property>
+          <property name="propagate">True</property>
+          <property name="row">2</property>
+        </layout>
+        <child>
+          <object class="ttk.Checkbutton" id="file_scan_auto">
+            <property name="command">_file_scan</property>
+            <property name="offvalue">0</property>
+            <property name="onvalue">1</property>
+            <property name="state">normal</property>
+            <property name="text" translatable="yes">Automatic File Loading</property>
+            <property name="variable">int:file_scan_auto</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="columnspan">2</property>
+              <property name="propagate">True</property>
+              <property name="row">0</property>
+              <property name="sticky">w</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Button" id="button_open">
+            <property name="command">_select_filepath</property>
+            <property name="text" translatable="yes">Open</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="propagate">True</property>
+              <property name="row">1</property>
+              <property name="sticky">w</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Label" id="label_file">
+            <property name="relief">sunken</property>
+            <property name="textvariable">string:filename</property>
+            <property name="width">37</property>
+            <layout>
+              <property name="column">1</property>
+              <property name="propagate">True</property>
+              <property name="row">1</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Label" id="label_file_found">
+            <property name="textvariable">string:file_found</property>
+            <layout>
+              <property name="column">1</property>
+              <property name="propagate">True</property>
+              <property name="row">0</property>
+            </layout>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="tk.Frame" id="frame_position">
+        <property name="height">200</property>
+        <property name="width">200</property>
+        <layout>
+          <property name="column">1</property>
+          <property name="propagate">True</property>
+          <property name="row">1</property>
+          <property name="sticky">w</property>
+        </layout>
+        <child>
+          <object class="tk.Label" id="label_x">
+            <property name="justify">right</property>
+            <property name="padx">0</property>
+            <property name="text" translatable="yes">X:</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="propagate">True</property>
+              <property name="row">0</property>
+              <property name="sticky">e</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="tk.Label" id="label_y">
+            <property name="justify">right</property>
+            <property name="padx">0</property>
+            <property name="text" translatable="yes">Y:</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="propagate">True</property>
+              <property name="row">1</property>
+              <property name="sticky">e</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="tk.Label" id="label_z">
+            <property name="justify">right</property>
+            <property name="padx">0</property>
+            <property name="text" translatable="yes">Z:</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="propagate">True</property>
+              <property name="row">2</property>
+              <property name="sticky">e</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="tk.Label" id="label_pos_x">
+            <property name="anchor">w</property>
+            <property name="justify">left</property>
+            <property name="relief">sunken</property>
+            <property name="textvariable">double:pos_x</property>
+            <property name="width">8</property>
+            <layout>
+              <property name="column">1</property>
+              <property name="propagate">True</property>
+              <property name="row">0</property>
+              <property name="sticky">w</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="tk.Label" id="label_pos_y">
+            <property name="anchor">w</property>
+            <property name="justify">left</property>
+            <property name="relief">sunken</property>
+            <property name="textvariable">double:pos_y</property>
+            <property name="width">8</property>
+            <layout>
+              <property name="column">1</property>
+              <property name="propagate">True</property>
+              <property name="row">1</property>
+              <property name="sticky">w</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="tk.Label" id="label_pos_z">
+            <property name="anchor">w</property>
+            <property name="justify">left</property>
+            <property name="relief">sunken</property>
+            <property name="textvariable">double:pos_z</property>
+            <property name="width">8</property>
+            <layout>
+              <property name="column">1</property>
+              <property name="propagate">True</property>
+              <property name="row">2</property>
+              <property name="sticky">w</property>
+            </layout>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
