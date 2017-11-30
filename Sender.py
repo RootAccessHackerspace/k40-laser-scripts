@@ -30,6 +30,9 @@ G_POLL = 10 # seconds
 RX_BUFFER_SIZE = 128 # bytes
 OUTPUT_LOG_QUEUE = False # Whether to write the log queue to a file
 
+# RegEx
+SPLITPOS = re.compile(r"[:,]")
+
 class Sender(object):
     """Class that controls access to GRBL"""
     # pylint: disable=too-many-instance-attributes
@@ -38,6 +41,7 @@ class Sender(object):
         self.log = Queue() # What is returned from GRBL
         self.queue = Queue() # What to send to GRBL
         self.error = Queue() # Lengthy error messages
+        self.pos = None # Will be (x,y,z) of machine position
         self.serial = None
         self.thread = None
 
@@ -251,6 +255,12 @@ class Sender(object):
         self.error.put((msg, code, long_msg))
         self.log.put("{} {}".format(alarm, short_msg))
 
+    def __parse_position(self, field):
+        """Sets self.pos tuple with machine position"""
+        position = SPLITPOS.split(field)
+        self.pos = tuple(float(f) for f in position[1:])
+        logger.debug("Position: %s", self.pos)
+
 
     def _serial_io(self):
         """Process to perform I/O on GRBL
@@ -335,6 +345,9 @@ class Sender(object):
                                 logger.error("Grbl Error: %s", out_temp)
                             elif "alarm" in status_fields[0].lower():
                                 logger.error("Grbl Alarm: %s", out_temp)
+                            for field in status_fields[1:]:
+                                if "MPos:" in field:
+                                    self.__parse_position(field)
                         else:
                             logger.error("Unexpected output: %s", out_temp)
                 self.serial.write(line_block + "\n")
@@ -360,6 +373,9 @@ class Sender(object):
                             logger.error("Grbl Error: %s", out_temp)
                         elif "alarm" in status_fields[0].lower():
                             logger.error("Grbl Alarm: %s", out_temp)
+                        for field in status_fields[1:]:
+                            if "MPos:" in field:
+                                self.__parse_position(field)
                     else:
                         logger.error("Unexpected output: %s", out_temp)
             logger.debug(("serial_io post DEBUG:",

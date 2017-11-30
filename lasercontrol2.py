@@ -33,7 +33,7 @@ from Queue import Empty
 import yaml
 
 from inotify.adapters import Inotify
-from inotify.constants import IN_CLOSE, IN_CREATE, IN_MODIFY
+from inotify.constants import IN_CLOSE_WRITE, IN_CREATE, IN_MODIFY
 
 from Sender import Sender
 
@@ -255,7 +255,7 @@ class MainWindow(Sender):
     def _file_scanning(self):
         """Scan directory for files that have been recently written"""
         monitor = Inotify()
-        monitor.add_watch(GDIR, IN_CLOSE)
+        monitor.add_watch(GDIR, IN_CLOSE_WRITE)
         #monitor.add_watch(GDIR, (IN_CREATE | IN_MODIFY))
         logger.debug("Automatic file scanning will start: %s",
                      bool(self.var["file_scan_auto"].get()))
@@ -357,6 +357,10 @@ class MainWindow(Sender):
                     message = "{}\nSoft Reset and Unlock to continue".format(message)
                     messagebox.showerror("{} {}".format(response, code),
                                          message)
+                if isinstance(self.pos, tuple):
+                    self.var["pos_x"].set(self.pos[0])
+                    self.var["pos_y"].set(self.pos[1])
+                    self.var["pos_z"].set(self.pos[2])
             except Empty:
                 pass
         logger.info("Stopped status updating")
