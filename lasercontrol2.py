@@ -86,9 +86,25 @@ class MainWindow(Sender):
         self.mainwindow.protocol("WM_DELETE_WINDOW", self.__shutdown)
         builder.connect_callbacks(self)
         ## Variables & Buttons
-        builder.import_variables(self)
-        self.status.set("Not Authorized")
-        self.connect_b.set("Connect")
+        self.var = {}
+        variable_list = ["status",
+                         "connect_b",
+                         "psu_label",
+                         "laser_label",
+                         "filename",
+                         "file_found",
+                         "file_scan_auto",
+                         "pos_x",
+                         "pos_y",
+                         "pos_z",
+                        ]
+        for var in variable_list:
+            try:
+                self.var[var] = builder.get_variable(var)
+            except BaseException as ex:
+                logger.warning("Variable not defined: %s", var)
+        self.var["status"].set("Not Authorized")
+        self.var["connect_b"].set("Connect")
         self.buttons = {}
         button_list = ["button_conn",
                        "button_home",
@@ -106,8 +122,6 @@ class MainWindow(Sender):
                 self.buttons[button] = builder.get_object(button)
             except BaseException as ex:
                 logger.warning("Button not defined: %s", button)
-        self.laser_label.set(relay_state(OUT_PINS['laser']))
-        self.psu_label.set(relay_state(OUT_PINS['psu']))
         # All done
         logger.info("Window started")
 
@@ -161,7 +175,7 @@ class MainWindow(Sender):
                 # Let the buttons actually do something!
                 self._activate_buttons()
                 logger.info("user %s authorized", username)
-                self.status.set("Authorized, not connected")
+                self.var["status"].set("Authorized, not connected")
                 messagebox.showinfo("Done",
                                     "Everything is setup, {}".format(realname))
             else:
@@ -187,14 +201,17 @@ class MainWindow(Sender):
                 logger.exception("Failed to disable %s", button)
         logger.info("Buttons disabled")
 
+    def _relay_state(self, item):
+        """Set the appropriate text variable with the relay state"""
+
+
     def _switch_pin(self, item):
         """Change pin state & set laser/psu StringVar's"""
         logger.debug("Changing pin for %s", item)
         pin = OUT_PINS[item]
         switch_pin(pin)
-        self.laser_label.set(relay_state(OUT_PINS['laser']))
-        self.psu_label.set(relay_state(OUT_PINS['psu']))
-
+        self.var["laser_label"].set(relay_state(OUT_PINS['laser']))
+        self.var["psu_label"].set(relay_state(OUT_PINS['psu']))
 
     def _file_scanning(self):
         """Scan directory for files that have been recently written"""
@@ -241,7 +258,7 @@ class MainWindow(Sender):
 
     def _read_file(self, filepath):
         """Take filepath, set filename StringVar"""
-        self.load.filename.set(os.path.basename(filepath))
+        self.var["filename"].set(os.path.basename(filepath))
         logger.debug("Reading %s into list", filepath)
         with open(filepath, 'rU') as gcode_file:
             self.gcode.file = []
@@ -256,7 +273,7 @@ class MainWindow(Sender):
             status = self._open_serial(device)
             logger.info("Opened serial: %s", status)
             self.buttons["button_conn"].configure(command=self._close)
-            self.connect_b.set("Disconnect")
+            self.var["connect_b"].set("Disconnect")
             return status
         except BaseException:
             self.serial = None
@@ -270,8 +287,8 @@ class MainWindow(Sender):
         logger.info("Closing serial")
         self._close_serial()
         self.buttons["button_conn"].configure(command=lambda: self._open(GRBL_SERIAL))
-        self.status.set("Not Connected")
-        self.connect_b.set("Connect")
+        self.var["status"].set("Not Connected")
+        self.var["connect_b"].set("Connect")
 
     def _run(self, lines=None):
         """Send gcode file to the laser"""
@@ -303,7 +320,7 @@ class MainWindow(Sender):
         Note: Auth will be lost.
         """
         if messagebox.askokcancel("Quit?", message):
-            self.file_scan_auto.set(0)
+            self.var["file_scan_auto"].set(0)
             self._close()
             time.sleep(1)
             self.mainwindow.destroy()
@@ -456,10 +473,13 @@ def disable_relay(pin, disabled=True):
 
 def relay_state(pin):
     """Take in pin, return string state of the relay"""
+    logger.debug("relay_state() for pin %s", pin)
     disabled = GPIO.digitalRead(pin)
+    logger.debug("Pin %s disabled: %s", pin, disabled)
     state = "off"
     if not disabled:
         state = "on"
+    logger.debug("Relay state for pin %s is %s", pin, state)
     return state
 
 def switch_pin(pin):
