@@ -42,8 +42,8 @@ class Sender(object):
 
         self.running = False
         self._stop = False # Set to True to stop current run
-        self._pause = False # Is it currently paused?
-        # The reason _stop and _pause represent different conditions is
+        self._paused = False # Is it currently paused?
+        # The reason _stop and _paused represent different conditions is
         # because of the way GRBL handles stopping/pausing.
         # If GRBL is stopped, GRBL clears its queue, so we no longer have a
         # reliable method of continuation. So by setting _stop = True, we can
@@ -136,13 +136,13 @@ class Sender(object):
         if self.running:
             logger.debug("self.running == True when _run_ended()")
             logger.info("Run ended")
-        logger.debug(("Run ended, pre", {"_pause": self._pause,
+        logger.debug(("Run ended, pre", {"_pause": self._paused,
                                          "running": self.running,
                                         }
                      ))
         #self._pause = False
         #self.running = False
-        logger.debug(("Run ended, post", {"_pause": self._pause,
+        logger.debug(("Run ended, post", {"_pause": self._paused,
                                           "running": self.running,
                                          }))
 
@@ -189,12 +189,12 @@ class Sender(object):
     def _init_run(self):
         """Initialize a gcode run"""
         logger.debug("Called Sender._init_run()")
-        logger.debug(("init_run, pre", {"_pause": self._pause,
+        logger.debug(("init_run, pre", {"_pause": self._paused,
                                         "running": self.running
                                        }))
         #self._pause = False
         #self.running = True
-        logger.debug(("init_run, post", {"_pause": self._pause,
+        logger.debug(("init_run, post", {"_pause": self._paused,
                                          "running": self.running
                                         }))
         logger.debug("Calling self._empty_queue()")
@@ -206,37 +206,37 @@ class Sender(object):
         """Pause run"""
         logger.debug("Called Sender._pause()")
         logger.debug(("pause, pre", {"_serial": self.serial,
-                                     "_pause": self._pause,
+                                     "_pause": self._paused,
                                     }))
         if self.serial is None:
             return
         if self._pause:
-            logger.debug("Calling self._resume() b/c _pause==True")
+            logger.debug("Calling self._resume() b/c _paused==True")
             self._resume()
         else:
-            logger.debug("_pause==False, so pausing")
+            logger.debug("_paused==False, so pausing")
             logger.info("Pausing run")
             self.serial.write(b"!")
             self.serial.flush()
-            self._pause = True
+            self._paused = True
         logger.debug(("pause, post", {"_serial": self.serial,
-                                      "_pause": self._pause,
+                                      "_pause": self._paused,
                                      }))
 
     def _resume(self):
         """Resume a run"""
         logger.debug("Called Sender._resume()")
         logger.debug(("resume, pre", {"_serial": self.serial,
-                                      "_pause": self._pause,
+                                      "_pause": self._paused,
                                      }))
         if self.serial is None:
             return
         logger.info("Resuming run")
         self.serial.write(b"~")
         self.serial.flush()
-        self._pause = False
+        self._paused = False
         logger.debug(("resume, post", {"_serial": self.serial,
-                                       "_pause": self._pause,
+                                       "_pause": self._paused,
                                       }))
 
     def _serial_io(self):
@@ -252,9 +252,11 @@ class Sender(object):
         gcode_count = 0
         char_line = []
         line = None
+        t_poll = time.time()
 
         while self.thread: # pylint: disable=too-many-nested-blocks
             # TODO: reduce number of nested blocks
+            t_curr = time.time()
             logger.debug(("serial_io pre DEBUG:",
                           {"line_count": line_count,
                            "error_Count": error_count,
@@ -262,6 +264,11 @@ class Sender(object):
                            "char_line": char_line,
                            "line": line,
                           }))
+            # Poll status if enough time has passed
+            if t_curr - t_poll > SERIAL_POLL:
+                self.serial.write("?")
+                t_poll = t_curr
+            # Get other commands from queue
             try:
                 line = self.queue.get_nowait()
             except Empty:
@@ -292,26 +299,28 @@ class Sender(object):
                                    "serial.in_waiting": self.serial.in_waiting,
                                   }))
                     out_temp = self.serial.readline().strip()
-                    if out_temp.find("ok") < 0 and out_temp.find("error") < 0:
-                        logger.debug("Grbl MSG: %s", out_temp)
-                    else:
-                        if out_temp.find("error") >= 0:
+                    if out_temp.find("ok") >= 0:
+                        gcode_count += 1
+                        # The following try-except block seems to be mostly
+                        # because sending "$H\n" (aka, homing) to Grbl
+                        # triggers Grbl to send back two "ok".
+                        try:
+                            logger.debug("Removing most recent command")
+                            del char_line[0]
+                        except IndexError:
+                            logger.debug("char_line already empty")
+                    elif out_temp.find("<") == 0:
+                        logger.debug("Status message received: %s", out_temp)
+                        status_msg = out_temp[1:-1]
+                        status_fields = status_msg.split("|")
+                        self.log.put(status_fields[0])
+                        if "error" in status_fields[0].lower():
                             error_count += 1
                             logger.error("Grbl Error: %s", out_temp)
-                        if out_temp.find("ok") >= 0:
-                            gcode_count += 1
-                            # The following try-except block seems to be mostly
-                            # because sending "$H\n" (aka, homing) to Grbl
-                            # triggers Grbl to send back two "ok".
-                            try:
-                                logger.debug("Most recent response: %s",
-                                             out_temp)
-                                logger.debug("Removing most recent command")
-                                del char_line[0]
-                            except IndexError:
-                                logger.debug("char_line already empty")
-                        else:
-                            logger.error("Unexpected output: %s", out_temp)
+                        elif "alarm" in status_fields[0].lower():
+                            logger.error("Grbl Alarm: %s", out_temp)
+                    else:
+                        logger.error("Unexpected output: %s", out_temp)
                 self.serial.write(line_block + "\n")
             while line_count > gcode_count:
                 out_temp = self.serial.readline().strip()
