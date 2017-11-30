@@ -308,7 +308,7 @@ class MainWindow(Sender):
                 self.file.append(line)
             logger.debug("self.file length: %d", len(self.file))
 
-    def _open(self, device):
+    def _open(self, device=GRBL_SERIAL):
         """Open serial device"""
         try:
             status = self._open_serial(device)

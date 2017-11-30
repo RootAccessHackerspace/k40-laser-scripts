@@ -76,7 +76,7 @@ class Sender(object):
             logger.debug("IOError on setDTR(), but not important")
             pass
         self.serial.write(b"\n\n")
-        self.thread = Thread(target=self.serial_io, name="SerialIOThread")
+        self.thread = Thread(target=self._serial_io, name="SerialIOThread")
         self.thread.start()
         logger.info("I/O thread started: %s", self.thread.name)
         return True
