@@ -299,17 +299,40 @@ class Sender(object):
                                    "serial.in_waiting": self.serial.in_waiting,
                                   }))
                     out_temp = self.serial.readline().strip()
+                    if len(out_temp) > 0:
+                        if out_temp.find("ok") >= 0:
+                            gcode_count += 1
+                            # The following try-except block seems to be mostly
+                            # because sending "$H\n" (aka, homing) to Grbl
+                            # triggers Grbl to send back two "ok".
+                            try:
+                                logger.debug("Removing most recent command")
+                                del char_line[0]
+                            except IndexError:
+                                logger.debug("char_line already empty")
+                        elif out_temp.find("<") == 0:
+                            logger.debug("Status message received: %s", out_temp)
+                            status_msg = out_temp[1:-1]
+                            status_fields = status_msg.split("|")
+                            self.log.put(status_fields[0])
+                            if "error" in status_fields[0].lower():
+                                error_count += 1
+                                logger.error("Grbl Error: %s", out_temp)
+                            elif "alarm" in status_fields[0].lower():
+                                logger.error("Grbl Alarm: %s", out_temp)
+                        else:
+                            logger.error("Unexpected output: %s", out_temp)
+                self.serial.write(line_block + "\n")
+            else:
+                out_temp = self.serial.readline().strip()
+                if len(out_temp) > 0:
                     if out_temp.find("ok") >= 0:
                         gcode_count += 1
-                        # The following try-except block seems to be mostly
-                        # because sending "$H\n" (aka, homing) to Grbl
-                        # triggers Grbl to send back two "ok".
                         try:
                             logger.debug("Removing most recent command")
                             del char_line[0]
                         except IndexError:
                             logger.debug("char_line already empty")
-                    #TODO: Put this outside of the `if line is not None`
                     elif out_temp.find("<") == 0:
                         logger.debug("Status message received: %s", out_temp)
                         status_msg = out_temp[1:-1]
@@ -322,17 +345,6 @@ class Sender(object):
                             logger.error("Grbl Alarm: %s", out_temp)
                     else:
                         logger.error("Unexpected output: %s", out_temp)
-                self.serial.write(line_block + "\n")
-            while line_count > gcode_count:
-                out_temp = self.serial.readline().strip()
-                if out_temp.find("ok") < 0 and out_temp.find("error") < 0:
-                    logger.debug("Grbl MSG: %s", out_temp)
-                else:
-                    if out_temp.find("error") >= 0:
-                        error_count += 1
-                        logger.error("Grbl Error: %s", out_temp)
-                    gcode_count += 1
-                    del char_line[0]
             logger.debug(("serial_io post DEBUG:",
                           {"line_count": line_count,
                            "error_Count": error_count,
