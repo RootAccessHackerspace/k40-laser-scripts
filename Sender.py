@@ -21,7 +21,7 @@ import serial
 
 logger = logging.getLogger(__name__) #pylint: disable=invalid-name
 
-#from GrblCodes import ALARM_CODES, ERROR_CODES
+from GrblCodes import ALARM_CODES, ERROR_CODES
 
 # Global variables
 SERIAL_TIMEOUT = 0.1 # seconds
@@ -37,6 +37,7 @@ class Sender(object):
     def __init__(self):
         self.log = Queue() # What is returned from GRBL
         self.queue = Queue() # What to send to GRBL
+        self.error = Queue() # Lengthy error messages
         self.serial = None
         self.thread = None
 
@@ -239,6 +240,18 @@ class Sender(object):
                                        "_pause": self._paused,
                                       }))
 
+    def __parse_alarm(self, alarm):
+        """Logs alarm or error with its short message"""
+        msg, code = alarm.split(":")
+        code = int(code)
+        if msg == "ALARM":
+            short_msg, long_msg = ALARM_CODES[code]
+        elif msg == "ERROR":
+            short_msg, long_msg = ERROR_CODES[code]
+        self.error.put((msg, code, long_msg))
+        self.log.put("{} {}".format(alarm, short_msg))
+
+
     def _serial_io(self):
         """Process to perform I/O on GRBL
 
@@ -310,6 +323,8 @@ class Sender(object):
                                 del char_line[0]
                             except IndexError:
                                 logger.debug("char_line already empty")
+                        elif ("ALARM" or "ERROR") in out_temp:
+                            self.__parse_alarm(out_temp)
                         elif out_temp.find("<") == 0:
                             logger.debug("Status message received: %s", out_temp)
                             status_msg = out_temp[1:-1]
@@ -333,6 +348,8 @@ class Sender(object):
                             del char_line[0]
                         except IndexError:
                             logger.debug("char_line already empty")
+                    elif ("ALARM" or "ERROR") in out_temp:
+                        self.__parse_alarm(out_temp)
                     elif out_temp.find("<") == 0:
                         logger.debug("Status message received: %s", out_temp)
                         status_msg = out_temp[1:-1]

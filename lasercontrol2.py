@@ -344,6 +344,11 @@ class MainWindow(Sender):
             try:
                 msg = self.log.get_nowait()
                 self.var["status"].set(msg)
+                if ("ALARM" or "ERROR") in msg:
+                    response, code, message = self.error.get_nowait()
+                    message = "{}\nSoft Reset and Unlock to continue".format(message)
+                    messagebox.showerror("{} {}".format(response, code),
+                                         message)
             except Empty:
                 pass
         logger.info("Stopped status updating")
