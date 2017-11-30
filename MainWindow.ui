@@ -426,6 +426,20 @@
             </layout>
           </object>
         </child>
+        <child>
+          <object class="ttk.Progressbar" id="progress_running">
+            <property name="maximum">1</property>
+            <property name="mode">determinate</property>
+            <property name="orient">horizontal</property>
+            <property name="variable">double:progress_bar</property>
+            <layout>
+              <property name="column">1</property>
+              <property name="columnspan">2</property>
+              <property name="propagate">True</property>
+              <property name="row">3</property>
+            </layout>
+          </object>
+        </child>
       </object>
     </child>
   </object>

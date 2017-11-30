@@ -44,6 +44,8 @@ class Sender(object):
         self.pos = None # Will be (x,y,z) of machine position
         self.serial = None
         self.thread = None
+        self.progress = 0.0
+        self.max_size = 0.0
 
         self.running = False
         self._stop = False # Set to True to stop current run
@@ -301,6 +303,7 @@ class Sender(object):
                 line = None
             if line is not None:
                 line_count += 1
+                self.progress = line_count / self.max_size
                 # Reformat line to be ASCII and remove all spaces, comments
                 # and newline characters. We want each line to be as short as
                 # possible.

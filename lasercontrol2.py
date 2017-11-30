@@ -98,6 +98,7 @@ class MainWindow(Sender):
                          "pos_x",
                          "pos_y",
                          "pos_z",
+                         "progress_bar",
                         ]
         for var in variable_list:
             try:
@@ -349,6 +350,7 @@ class MainWindow(Sender):
     def _update_status(self):
         logger.info("Starting status updating: %s", bool(self.status_thread))
         while self.status_thread:
+            self.var["progress_bar"].set(self.progress)
             try:
                 msg = self.log.get_nowait()
                 self.var["status"].set(msg)
@@ -381,6 +383,7 @@ class MainWindow(Sender):
         #    return
         self._init_run()
         logger.info("Lines to send: %d", len(self.file))
+        self.max_size = float(len(self.file))
         for line in self.file:
             if line is not None:
                 logger.debug("Queued line: %s", line)
