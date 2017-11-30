@@ -76,7 +76,7 @@ GRBL_SERIAL = "/dev/ttyAMA0"
 class MainWindow(Sender):
     """Main window"""
     # pylint: disable=too-many-ancestors,too-many-instance-attributes
-    def __init__(self, master):
+    def __init__(self):
         ## Sender methods
         Sender.__init__(self)
         ## Main window
@@ -122,9 +122,13 @@ class MainWindow(Sender):
             uid = get_uid_noblock()
             if not uid:
                 # True/False are 1/0, so it works
-                retry -= messagebox.askretrycancel("No UID found",
-                                                   ("Could not find NFC tag."
-                                                    "Try again?"))
+                again = messagebox.askretrycancel("No UID found",
+                                                  ("Could not find NFC tag."
+                                                   "Try again?"))
+                if again:
+                    retry -= 1
+                else:
+                    return
             else:
                 retry = 0
         if uid:
@@ -133,35 +137,35 @@ class MainWindow(Sender):
                 messagebox.showerror("Not Authorized",
                                      ("You do not have authorization to "
                                       "use this device."))
-        try:
-            username = get_user_uid(uid)
-            realname = get_user_realname()
-        except BaseException as ex:
-            messagebox.showerror("Error:", ex)
-        current_user = is_current_user(username)
-        if not current_user:
-            messagebox.showerror("Incorrect user",
-                                 ("The provided NFC tag is not for the "
-                                  "current user."))
-        if current_user and uid and verified:
             try:
-                board_setup = gpio_setup()
+                username = get_user_uid(uid)
+                realname = get_user_realname()
             except BaseException as ex:
-                messagebox.showerror("GPIO Error:", ex)
-            if board_setup:
-                _ = disable_relay(OUT_PINS['laser'])
-                _ = disable_relay(OUT_PINS['psu'])
+                messagebox.showerror("Error:", ex)
+            current_user = is_current_user(username)
+            if not current_user:
+                messagebox.showerror("Incorrect user",
+                                     ("The provided NFC tag is not for the "
+                                      "current user."))
+            if current_user and uid and verified:
+                try:
+                    board_setup = gpio_setup()
+                except BaseException as ex:
+                    messagebox.showerror("GPIO Error:", ex)
+                if board_setup:
+                    _ = disable_relay(OUT_PINS['laser'])
+                    _ = disable_relay(OUT_PINS['psu'])
+                else:
+                    messagebox.showerror("Failed", "Board not setup")
+                    return
+                # Let the buttons actually do something!
+                self._activate_buttons()
+                logger.info("user %s authorized", username)
+                self.status.set("Authorized, not connected")
+                messagebox.showinfo("Done",
+                                    "Everything is setup, {}".format(realname))
             else:
-                messagebox.showerror("Failed", "Board not setup")
-                return
-            # Let the buttons actually do something!
-            self._activate_buttons()
-            logger.info("user %s authorized", username)
-            self.status.set("Authorized, not connected")
-            messagebox.showinfo("Done",
-                                "Everything is setup, {}".format(realname))
-        else:
-            messagebox.showerror("Error", "Something went wrong")
+                messagebox.showerror("Error", "Something went wrong")
 
     def _activate_buttons(self):
         """Enable the buttons"""
@@ -251,7 +255,7 @@ class MainWindow(Sender):
         try:
             status = self._open_serial(device)
             logger.info("Opened serial: %s", status)
-            self.button_conn.configure(command=self._close)
+            self.buttons["button_conn"].configure(command=self._close)
             self.connect_b.set("Disconnect")
             return status
         except BaseException:
@@ -265,7 +269,7 @@ class MainWindow(Sender):
         """Close serial device"""
         logger.info("Closing serial")
         self._close_serial()
-        self.button_conn.configure(command=lambda: self._open(GRBL_SERIAL))
+        self.buttons["button_conn"].configure(command=lambda: self._open(GRBL_SERIAL))
         self.status.set("Not Connected")
         self.connect_b.set("Connect")
 
@@ -304,6 +308,9 @@ class MainWindow(Sender):
             time.sleep(1)
             self.mainwindow.destroy()
             shutdown()
+
+    def run(self):
+        self.mainwindow.mainloop()
 
 
 ####---- Generic Functions ----####
@@ -473,9 +480,8 @@ def toggle_pin(pin):
 ####---- MAIN ----####
 def main():
     """Main function"""
-    root = tk.Tk()
-    MainWindow(root)
-    root.mainloop()
+    root = MainWindow()
+    root.run()
 
 def shutdown():
     """Shutdown commands"""
