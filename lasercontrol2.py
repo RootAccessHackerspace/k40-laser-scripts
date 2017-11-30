@@ -33,7 +33,7 @@ from Queue import Empty
 import yaml
 
 from inotify.adapters import Inotify
-from inotify.constants import IN_CLOSE_WRITE
+from inotify.constants import IN_CLOSE, IN_CREATE, IN_MODIFY
 
 from Sender import Sender
 
@@ -255,7 +255,8 @@ class MainWindow(Sender):
     def _file_scanning(self):
         """Scan directory for files that have been recently written"""
         monitor = Inotify()
-        monitor.add_watch(GDIR, IN_CLOSE_WRITE)
+        monitor.add_watch(GDIR, IN_CLOSE)
+        #monitor.add_watch(GDIR, (IN_CREATE | IN_MODIFY))
         logger.debug("Automatic file scanning will start: %s",
                      bool(self.var["file_scan_auto"].get()))
         scanning = self.var["file_scan_auto"].get()
@@ -264,11 +265,18 @@ class MainWindow(Sender):
                 for event in monitor.event_gen():
                     if event is not None:
                         filename = event[3]
+                        event_type = event[2]
                         logger.debug("File creation detected: %s", filename)
                         extension = os.path.splitext(filename)[1]
-                        if extension in GCODE_EXT:
+                        #loading = any(("IN_WRITE" or "IN_MODIFY") in type_name
+                        #              for type_name in event_type)
+                        if extension in GCODE_EXT: #and not loading:
                             logger.info("Auto-loading %s", filename)
+                            self.var["file_found"].set("")
                             self._read_file(os.path.join(GDIR, filename))
+                        #elif extension in GCODE_EXT and loading:
+                        #    logger.info("Waiting on %s", filename)
+                        #    self.var["file_found"].set("Waiting on {}".format(filename))
                     scanning = self.var["file_scan_auto"].get()
                     logger.debug("Scanning value: %s", scanning)
                     if not scanning:
