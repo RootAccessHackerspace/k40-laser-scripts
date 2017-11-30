@@ -29,6 +29,7 @@ import logging
 import logging.config
 
 from threading import Thread, enumerate as thread_enum, active_count
+from Queue import Empty
 import yaml
 
 from inotify.adapters import Inotify
@@ -108,6 +109,7 @@ class MainWindow(Sender):
         self.var["file_scan_auto"].set(1)
         self.file_thread = None
         self._file_scan()
+        self.status_thread = None
         self.buttons = {}
         button_list = ["button_conn",
                        "button_home",
@@ -315,10 +317,14 @@ class MainWindow(Sender):
             logger.info("Opened serial: %s", status)
             self.buttons["button_conn"].configure(command=self._close)
             self.var["connect_b"].set("Disconnect")
+            self.status_thread = Thread(target=self._update_status,
+                                        name="StatusUpdateThread")
+            self.status_thread.start()
             return status
         except BaseException:
             self.serial = None
             self.thread = None
+            self.status_thread = None
             messagebox.showerror("Error Opening serial", sys.exc_info()[1])
             logger.exception("Failed to open serial")
         return False
@@ -327,9 +333,20 @@ class MainWindow(Sender):
         """Close serial device"""
         logger.info("Closing serial")
         self._close_serial()
+        self.status_thread = None
         self.buttons["button_conn"].configure(command=lambda: self._open(GRBL_SERIAL))
         self.var["status"].set("Not Connected")
         self.var["connect_b"].set("Connect")
+
+    def _update_status(self):
+        logger.info("Starting status updating: %s", bool(self.status_thread))
+        while self.status_thread:
+            try:
+                msg = self.log.get_nowait()
+                self.var["status"].set(msg)
+            except Empty:
+                pass
+        logger.info("Stopped status updating")
 
     def _run(self):
         """Send gcode file to the laser"""
@@ -363,6 +380,7 @@ class MainWindow(Sender):
         if scanning:
             self.buttons["file_scan"].invoke()
         if messagebox.askokcancel("Quit?", message):
+            self.status_thread = None
             self._close()
             self.mainwindow.destroy()
             shutdown()

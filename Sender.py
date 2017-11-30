@@ -265,7 +265,7 @@ class Sender(object):
                            "line": line,
                           }))
             # Poll status if enough time has passed
-            if t_curr - t_poll > SERIAL_POLL:
+            if t_curr-t_poll > SERIAL_POLL:
                 self.serial.write("?")
                 t_poll = t_curr
             # Get other commands from queue
@@ -309,6 +309,7 @@ class Sender(object):
                             del char_line[0]
                         except IndexError:
                             logger.debug("char_line already empty")
+                    #TODO: Put this outside of the `if line is not None`
                     elif out_temp.find("<") == 0:
                         logger.debug("Status message received: %s", out_temp)
                         status_msg = out_temp[1:-1]
