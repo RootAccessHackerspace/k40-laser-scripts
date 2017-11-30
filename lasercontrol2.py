@@ -174,6 +174,7 @@ class MainWindow(Sender):
                     return
                 # Let the buttons actually do something!
                 self._activate_buttons()
+                self._relay_states()
                 logger.info("user %s authorized", username)
                 self.var["status"].set("Authorized, not connected")
                 messagebox.showinfo("Done",
@@ -201,17 +202,24 @@ class MainWindow(Sender):
                 logger.exception("Failed to disable %s", button)
         logger.info("Buttons disabled")
 
-    def _relay_state(self, item):
-        """Set the appropriate text variable with the relay state"""
+    def _relay_states(self):
+        """Update the variables of the relay states"""
+        self.var["laser_label"].set(relay_state(OUT_PINS['laser']))
+        self.var["psu_label"].set(relay_state(OUT_PINS['psu']))
 
+    def _switch_psu(self):
+        self._switch_pin('psu')
+        self._relay_states()
+
+    def _switch_laser(self):
+        self._switch_pin('laser')
+        self._relay_states()
 
     def _switch_pin(self, item):
         """Change pin state & set laser/psu StringVar's"""
         logger.debug("Changing pin for %s", item)
         pin = OUT_PINS[item]
         switch_pin(pin)
-        self.var["laser_label"].set(relay_state(OUT_PINS['laser']))
-        self.var["psu_label"].set(relay_state(OUT_PINS['psu']))
 
     def _file_scanning(self):
         """Scan directory for files that have been recently written"""
