@@ -345,8 +345,8 @@ class MainWindow(Sender):
         #    messagebox.showerror("Currently running",
         #                         "Please stop current job first.")
         #    return
-        self.init_run()
-        logger.info("Lines to send: %d", len(lines))
+        self._init_run()
+        logger.info("Lines to send: %d", len(self.file))
         for line in self.file:
             if line is not None:
                 logger.debug("Queued line: %s", line)
