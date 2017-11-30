@@ -105,6 +105,9 @@ class MainWindow(Sender):
                 logger.warning("Variable not defined: %s", var)
         self.var["status"].set("Not Authorized")
         self.var["connect_b"].set("Connect")
+        self.var["file_scan_auto"].set(1)
+        self.file_thread = None
+        self._file_scan()
         self.buttons = {}
         button_list = ["button_conn",
                        "button_home",
@@ -116,6 +119,7 @@ class MainWindow(Sender):
                        "button_start",
                        "button_pause",
                        "button_stop",
+                       "file_scan",
                       ]
         for button in button_list:
             try:
@@ -221,13 +225,39 @@ class MainWindow(Sender):
         pin = OUT_PINS[item]
         switch_pin(pin)
 
+    def _hard_reset(self):
+        toggle_pin(OUT_PINS["grbl"])
+
+    def _file_scan(self):
+        """Toggle automatic file scanning"""
+        auto_scan = self.var["file_scan_auto"].get()
+        if auto_scan and not self.file_thread:
+            self.file_thread = Thread(target=self._file_scanning,
+                                      name="FileScanThread")
+            self.file_thread.start()
+            logger.info("Automatic file scanning started")
+        elif not auto_scan or self.file_thread:
+            self.var["file_scan_auto"].set(0)
+            self.file_thread = None
+            time.sleep(1)
+            self.mainwindow.update_idletasks()
+            logger.info("Automatic file scanning stopped")
+        else:
+            # Something went wrong, shut it down
+            logger.warning("Something is wrong with automatic file scanning")
+            logger.warning("Shutting down file scanning")
+            self.file_thread = None
+            self.var["file_scan_auto"].set(0)
+            self.mainwindow.update_idletasks()
+
     def _file_scanning(self):
         """Scan directory for files that have been recently written"""
         monitor = Inotify()
         monitor.add_watch(GDIR, IN_CLOSE_WRITE)
         logger.debug("Automatic file scanning will start: %s",
-                     bool(self.file_scan_thread))
-        while self.file_scan_thread:
+                     bool(self.var["file_scan_auto"].get()))
+        scanning = self.var["file_scan_auto"].get()
+        while scanning:
             try:
                 for event in monitor.event_gen():
                     if event is not None:
@@ -236,9 +266,12 @@ class MainWindow(Sender):
                         extension = os.path.splitext(filename)[1]
                         if extension in GCODE_EXT:
                             logger.info("Auto-loading %s", filename)
-                            self.read_file(os.path.join(GDIR, filename))
-                    elif not self.file_scan_thread:
+                            self._read_file(os.path.join(GDIR, filename))
+                    scanning = self.var["file_scan_auto"].get()
+                    logger.debug("Scanning value: %s", scanning)
+                    if not scanning:
                         logger.debug("Breaking _file_scanning()")
+                        self.file_thread = None
                         break
             finally:
                 logger.debug("'finally' removing watched directory")
@@ -262,18 +295,18 @@ class MainWindow(Sender):
         initial_dir = GDIR
         filepath = filedialog.askopenfilename(filetypes=valid_files,
                                               initialdir=initial_dir)
-        self.read_file(filepath)
+        self._read_file(filepath)
 
     def _read_file(self, filepath):
         """Take filepath, set filename StringVar"""
         self.var["filename"].set(os.path.basename(filepath))
         logger.debug("Reading %s into list", filepath)
         with open(filepath, 'rU') as gcode_file:
-            self.gcode.file = []
+            self.file = []
             for line in gcode_file:
-                logger.debug("Appending %s to self.gcode.file", line)
-                self.gcode.file.append(line)
-            logger.debug("self.gcode.file length: %d", len(self.gcode.file))
+                logger.debug("Appending %s to self.file", line)
+                self.file.append(line)
+            logger.debug("self.file length: %d", len(self.file))
 
     def _open(self, device):
         """Open serial device"""
@@ -298,7 +331,7 @@ class MainWindow(Sender):
         self.var["status"].set("Not Connected")
         self.var["connect_b"].set("Connect")
 
-    def _run(self, lines=None):
+    def _run(self):
         """Send gcode file to the laser"""
         logger.info("run() called")
         if self.serial is None:
@@ -313,13 +346,12 @@ class MainWindow(Sender):
         #                         "Please stop current job first.")
         #    return
         self.init_run()
-        if lines is not None:
-            logger.info("Lines to send: %d", len(lines))
-            for line in lines:
-                if line is not None:
-                    logger.debug("Queued line: %s", line)
-                    self.log.put(("Queued", line))
-                    self.queue.put(line)
+        logger.info("Lines to send: %d", len(lines))
+        for line in self.file:
+            if line is not None:
+                logger.debug("Queued line: %s", line)
+                self.log.put(("Queued", line))
+                self.queue.put(line)
         #self.log.put(("Queued", "WAIT"))
         #self.queue.put(("WAIT",))
 
@@ -327,12 +359,16 @@ class MainWindow(Sender):
         message = """Are you sure you want to close?
         Note: Auth will be lost.
         """
+        scanning = self.var["file_scan_auto"].get()
+        if scanning:
+            self.buttons["file_scan"].invoke()
         if messagebox.askokcancel("Quit?", message):
-            self.var["file_scan_auto"].set(0)
             self._close()
-            time.sleep(1)
             self.mainwindow.destroy()
             shutdown()
+        elif scanning:
+            self.buttons["file_scan"].invoke()
+
 
     def run(self):
         self.mainwindow.mainloop()
