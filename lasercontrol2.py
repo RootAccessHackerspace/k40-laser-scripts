@@ -28,7 +28,7 @@ import ttk
 import logging
 import logging.config
 
-from threading import Thread, enumerate as thread_enum, active_count
+from threading import enumerate as thread_enum, active_count
 from Queue import Empty
 import yaml
 
@@ -110,7 +110,6 @@ class MainWindow(Sender):
         self.var["file_scan_auto"].set(1)
         self.monitor = Inotify()
         self.monitor.add_watch(GDIR, IN_CLOSE_WRITE)
-        self.status_thread = None
         self.buttons = {}
         button_list = ["button_conn",
                        "button_home",
@@ -302,25 +301,19 @@ class MainWindow(Sender):
         self.var["connect_b"].set("Connect")
 
     def _update_status(self):
-        self.status_thread = Thread(target=self._update_status_old,
-                                    name="UpdateStatusThread")
-        self.status_thread.start()
-
-    def _update_status_old(self):
-        while self.status_thread:
-            msg = self.log
-            self.var["status"].set(msg)
-            if ("ALARM" or "ERROR") in msg:
-                response, code, message = self.error.get_nowait()
-                message = "{}\nSoft Reset and Unlock to continue".format(message)
-                messagebox.showerror("{} {}".format(response, code),
-                                     message)
-            if isinstance(self.pos, tuple):
-                self.var["pos_x"].set(self.pos[0])
-                self.var["pos_y"].set(self.pos[1])
-                self.var["pos_z"].set(self.pos[2])
-            self.var["progress_bar"].set(self.progress)
-        #self.mainwindow.after(250, self._update_status_old)
+        msg = self.log
+        self.var["status"].set(msg)
+        if ("ALARM" or "ERROR") in msg:
+            response, code, message = self.error.get_nowait()
+            message = "{}\nSoft Reset and Unlock to continue".format(message)
+            messagebox.showerror("{} {}".format(response, code),
+                                 message)
+        if isinstance(self.pos, tuple):
+            self.var["pos_x"].set(self.pos[0])
+            self.var["pos_y"].set(self.pos[1])
+            self.var["pos_z"].set(self.pos[2])
+        self.var["progress_bar"].set(self.progress)
+        self.mainwindow.after(250, self._update_status)
 
     def _run(self):
         """Send gcode file to the laser"""
@@ -343,9 +336,6 @@ class MainWindow(Sender):
         Note: Auth will be lost.
         """
         if messagebox.askokcancel("Quit?", message):
-            logger.info("Closing %s thread(s)", active_count())
-            self.status_thread.join(1)
-            self.status_thread = None
             self.monitor.remove_watch(GDIR)
             self.mainwindow.update_idletasks()
             self._close()
