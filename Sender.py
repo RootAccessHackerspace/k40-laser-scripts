@@ -38,7 +38,8 @@ class Sender(object):
     # pylint: disable=too-many-instance-attributes
     # If we get many more than 8 though...
     def __init__(self):
-        self.log = Queue() # What is returned from GRBL
+        #self.log = Queue() # What is returned from GRBL
+        self.log = ""
         self.queue = Queue() # What to send to GRBL
         self.error = Queue() # Lengthy error messages
         self.pos = None # Will be (x,y,z) of machine position
@@ -207,6 +208,7 @@ class Sender(object):
         logger.debug("Calling self._empty_queue()")
         self._empty_queue()
         logger.info("Initializing run")
+        self.progress = 0.0
         time.sleep(1) # Give everything a bit of time
 
     def _pause(self):
@@ -255,7 +257,8 @@ class Sender(object):
         elif msg == "ERROR":
             short_msg, long_msg = ERROR_CODES[code]
         self.error.put((msg, code, long_msg))
-        self.log.put("{} {}".format(alarm, short_msg))
+        #self.log.put("{} {}".format(alarm, short_msg))
+        self.log = "{} {}".format(alarm, short_msg)
 
     def __parse_position(self, field):
         """Sets self.pos tuple with machine position"""
@@ -277,6 +280,7 @@ class Sender(object):
         gcode_count = 0
         char_line = []
         line = None
+        done = False
         t_poll = time.time()
 
         while self.thread: # pylint: disable=too-many-nested-blocks
@@ -300,10 +304,13 @@ class Sender(object):
                 line = None
             logger.debug(("serial_io dur DEBUG:", {"line": line}))
             if isinstance(line, tuple):
+                if line[0] == "DONE":
+                    done = True
                 line = None
             if line is not None:
                 line_count += 1
-                self.progress = line_count / self.max_size
+                if self.max_size > 0:
+                    self.progress = line_count / self.max_size
                 # Reformat line to be ASCII and remove all spaces, comments
                 # and newline characters. We want each line to be as short as
                 # possible.
@@ -342,7 +349,8 @@ class Sender(object):
                             logger.debug("Status message received: %s", out_temp)
                             status_msg = out_temp[1:-1]
                             status_fields = status_msg.split("|")
-                            self.log.put(status_fields[0])
+                            #self.log.put(status_fields[0])
+                            self.log = status_fields[0]
                             if "error" in status_fields[0].lower():
                                 error_count += 1
                                 logger.error("Grbl Error: %s", out_temp)
@@ -370,7 +378,8 @@ class Sender(object):
                         logger.debug("Status message received: %s", out_temp)
                         status_msg = out_temp[1:-1]
                         status_fields = status_msg.split("|")
-                        self.log.put(status_fields[0])
+                        #self.log.put(status_fields[0])
+                        self.log = status_fields[0]
                         if "error" in status_fields[0].lower():
                             error_count += 1
                             logger.error("Grbl Error: %s", out_temp)
@@ -381,6 +390,9 @@ class Sender(object):
                                 self.__parse_position(field)
                     else:
                         logger.error("Unexpected output: %s", out_temp)
+                if done and line_count == gcode_count:
+                    self.progress = 0.0
+                    done = False
             logger.debug(("serial_io post DEBUG:",
                           {"line_count": line_count,
                            "error_Count": error_count,

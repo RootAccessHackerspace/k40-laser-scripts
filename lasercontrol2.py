@@ -28,7 +28,7 @@ import ttk
 import logging
 import logging.config
 
-from threading import Thread, enumerate as thread_enum, active_count
+from threading import enumerate as thread_enum, active_count
 from Queue import Empty
 import yaml
 
@@ -108,9 +108,8 @@ class MainWindow(Sender):
         self.var["status"].set("Not Authorized")
         self.var["connect_b"].set("Connect")
         self.var["file_scan_auto"].set(1)
-        self.file_thread = None
-        self._file_scan()
-        self.status_thread = None
+        self.monitor = Inotify()
+        self.monitor.add_watch(GDIR, IN_CLOSE_WRITE)
         self.buttons = {}
         button_list = ["button_conn",
                        "button_home",
@@ -231,65 +230,24 @@ class MainWindow(Sender):
     def _hard_reset(self):
         toggle_pin(OUT_PINS["grbl"])
 
-    def _file_scan(self):
-        """Toggle automatic file scanning"""
-        auto_scan = self.var["file_scan_auto"].get()
-        if auto_scan and not self.file_thread:
-            self.file_thread = Thread(target=self._file_scanning,
-                                      name="FileScanThread")
-            self.file_thread.start()
-            logger.info("Automatic file scanning started")
-        elif not auto_scan or self.file_thread:
-            self.var["file_scan_auto"].set(0)
-            self.file_thread = None
-            time.sleep(1)
-            self.mainwindow.update_idletasks()
-            logger.info("Automatic file scanning stopped")
-        else:
-            # Something went wrong, shut it down
-            logger.warning("Something is wrong with automatic file scanning")
-            logger.warning("Shutting down file scanning")
-            self.file_thread = None
-            self.var["file_scan_auto"].set(0)
-            self.mainwindow.update_idletasks()
-
     def _file_scanning(self):
         """Scan directory for files that have been recently written"""
-        monitor = Inotify()
-        monitor.add_watch(GDIR, IN_CLOSE_WRITE)
-        #monitor.add_watch(GDIR, (IN_CREATE | IN_MODIFY))
-        logger.debug("Automatic file scanning will start: %s",
-                     bool(self.var["file_scan_auto"].get()))
-        scanning = self.var["file_scan_auto"].get()
-        while scanning:
-            try:
-                for event in monitor.event_gen():
-                    if event is not None:
-                        filename = event[3]
-                        event_type = event[2]
-                        logger.debug("File creation detected: %s", filename)
-                        extension = os.path.splitext(filename)[1]
-                        #loading = any(("IN_WRITE" or "IN_MODIFY") in type_name
-                        #              for type_name in event_type)
-                        if extension in GCODE_EXT: #and not loading:
-                            logger.info("Auto-loading %s", filename)
-                            self.var["file_found"].set("")
-                            self._read_file(os.path.join(GDIR, filename))
-                        #elif extension in GCODE_EXT and loading:
-                        #    logger.info("Waiting on %s", filename)
-                        #    self.var["file_found"].set("Waiting on {}".format(filename))
-                    scanning = self.var["file_scan_auto"].get()
-                    logger.debug("Scanning value: %s", scanning)
-                    if not scanning:
-                        logger.debug("Breaking _file_scanning()")
-                        self.file_thread = None
-                        break
-            finally:
-                logger.debug("'finally' removing watched directory")
-                monitor.remove_watch(GDIR)
-        logger.debug("Removing watched directory")
-        monitor.remove_watch(GDIR)
-        logger.debug("_file_scanning() thread is now shut down")
+        to_scan = self.var["file_scan_auto"].get()
+        event = self.monitor.event_gen().next()
+        if to_scan:
+            logger.debug("Checking for created file...")
+            if event is not None:
+                filename = event[3]
+                event_type = event[2]
+                logger.debug("File creation detected: %s", filename)
+                extension = os.path.splitext(filename)[1]
+                if extension in GCODE_EXT: #and not loading:
+                    logger.info("Auto-loading %s", filename)
+                    self.var["file_found"].set("")
+                    self._read_file(os.path.join(GDIR, filename))
+        else:
+            logger.debug("Not checking for files.")
+        self.mainwindow.after(1000, self._file_scanning)
 
     def _select_filepath(self):
         """Use tkfiledialog to select the appropriate file"""
@@ -326,14 +284,10 @@ class MainWindow(Sender):
             logger.info("Opened serial: %s", status)
             self.buttons["button_conn"].configure(command=self._close)
             self.var["connect_b"].set("Disconnect")
-            self.status_thread = Thread(target=self._update_status,
-                                        name="StatusUpdateThread")
-            self.status_thread.start()
             return status
         except BaseException:
             self.serial = None
             self.thread = None
-            self.status_thread = None
             messagebox.showerror("Error Opening serial", sys.exc_info()[1])
             logger.exception("Failed to open serial")
         return False
@@ -342,30 +296,24 @@ class MainWindow(Sender):
         """Close serial device"""
         logger.info("Closing serial")
         self._close_serial()
-        self.status_thread = None
         self.buttons["button_conn"].configure(command=lambda: self._open(GRBL_SERIAL))
         self.var["status"].set("Not Connected")
         self.var["connect_b"].set("Connect")
 
     def _update_status(self):
-        logger.info("Starting status updating: %s", bool(self.status_thread))
-        while self.status_thread:
-            self.var["progress_bar"].set(self.progress)
-            try:
-                msg = self.log.get_nowait()
-                self.var["status"].set(msg)
-                if ("ALARM" or "ERROR") in msg:
-                    response, code, message = self.error.get_nowait()
-                    message = "{}\nSoft Reset and Unlock to continue".format(message)
-                    messagebox.showerror("{} {}".format(response, code),
-                                         message)
-                if isinstance(self.pos, tuple):
-                    self.var["pos_x"].set(self.pos[0])
-                    self.var["pos_y"].set(self.pos[1])
-                    self.var["pos_z"].set(self.pos[2])
-            except Empty:
-                pass
-        logger.info("Stopped status updating")
+        msg = self.log
+        self.var["status"].set(msg)
+        if ("ALARM" or "ERROR") in msg:
+            response, code, message = self.error.get_nowait()
+            message = "{}\nSoft Reset and Unlock to continue".format(message)
+            messagebox.showerror("{} {}".format(response, code),
+                                 message)
+        if isinstance(self.pos, tuple):
+            self.var["pos_x"].set(self.pos[0])
+            self.var["pos_y"].set(self.pos[1])
+            self.var["pos_z"].set(self.pos[2])
+        self.var["progress_bar"].set(self.progress)
+        self.mainwindow.after(250, self._update_status)
 
     def _run(self):
         """Send gcode file to the laser"""
@@ -374,41 +322,29 @@ class MainWindow(Sender):
             messagebox.showerror("Serial Error", "GRBL is not connected")
             logger.error("Serial device not set!")
             return
-        #if self.running:
-        #    if self._pause:
-        #        self.resume()
-        #        return
-        #    messagebox.showerror("Currently running",
-        #                         "Please stop current job first.")
-        #    return
         self._init_run()
         logger.info("Lines to send: %d", len(self.file))
         self.max_size = float(len(self.file))
         for line in self.file:
             if line is not None:
                 logger.debug("Queued line: %s", line)
-                self.log.put(("Queued", line))
                 self.queue.put(line)
-        #self.log.put(("Queued", "WAIT"))
-        #self.queue.put(("WAIT",))
+        self.queue.put(("DONE",))
 
     def __shutdown(self):
         message = """Are you sure you want to close?
         Note: Auth will be lost.
         """
-        scanning = self.var["file_scan_auto"].get()
-        if scanning:
-            self.buttons["file_scan"].invoke()
         if messagebox.askokcancel("Quit?", message):
-            self.status_thread = None
+            self.monitor.remove_watch(GDIR)
+            self.mainwindow.update_idletasks()
             self._close()
             self.mainwindow.destroy()
             shutdown()
-        elif scanning:
-            self.buttons["file_scan"].invoke()
-
 
     def run(self):
+        self.mainwindow.after(0, self._update_status)
+        self.mainwindow.after(0, self._file_scanning)
         self.mainwindow.mainloop()
 
 
@@ -598,7 +534,6 @@ def shutdown():
     logger.info("%d thread(s) still alive: %s", active_count(), thread_enum())
     if active_count() > 1:
         logger.critical("CANNOT SHUTDOWN PROPERLY")
-    sys.exit(0)
 
 def handler_cli(signum, frame):
     """Signal handler"""

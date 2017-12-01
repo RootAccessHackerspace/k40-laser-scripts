@@ -281,7 +281,6 @@
         </layout>
         <child>
           <object class="ttk.Checkbutton" id="file_scan">
-            <property name="command">_file_scan</property>
             <property name="offvalue">0</property>
             <property name="onvalue">1</property>
             <property name="state">normal</property>
