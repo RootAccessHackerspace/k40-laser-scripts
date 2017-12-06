@@ -10,6 +10,7 @@ __email__ = "d.armitage89@gmail.com"
 # https://github.com/vlachoudis/bCNC
 
 ####---- Import ----####
+from collections import deque
 from threading import Thread
 from Queue import Queue, Empty
 
@@ -278,7 +279,8 @@ class Sender(object):
         line_count = 0
         error_count = 0
         gcode_count = 0
-        char_line = []
+        char_line = deque()
+        sent_line = deque()
         line = None
         done = False
         t_poll = time.time()
@@ -318,6 +320,7 @@ class Sender(object):
                 line_block = re.sub(r"\s|\(.*?\)", "", line).upper()
                 # Track number of characters in the Grbl buffer
                 char_line.append(len(line_block)+1)
+                sent_line.append(line_block)
                 logger.debug(("serial_io dur DEBUG line:",
                               {"line": line,
                                "line_block": line_block,
@@ -340,7 +343,8 @@ class Sender(object):
                             # triggers Grbl to send back two "ok".
                             try:
                                 logger.debug("Removing most recent command")
-                                del char_line[0]
+                                char_line.popleft()
+                                sent_line.popleft()
                             except IndexError:
                                 logger.debug("char_line already empty")
                         elif ("ALARM" or "ERROR") in out_temp:
@@ -369,7 +373,8 @@ class Sender(object):
                         gcode_count += 1
                         try:
                             logger.debug("Removing most recent command")
-                            del char_line[0]
+                            char_line.popleft()
+                            sent_line.popleft
                         except IndexError:
                             logger.debug("char_line already empty")
                     elif ("ALARM" or "ERROR") in out_temp:
