@@ -279,7 +279,9 @@
             </layout>
             <child>
               <object class="ttk.Button" id="move_ul">
+                <property name="command">partial(_move, "ul")</property>
                 <property name="image">button_ul.gif</property>
+                <property name="state">disabled</property>
                 <property name="text" translatable="yes">Button_1</property>
                 <layout>
                   <property name="column">0</property>
@@ -290,7 +292,9 @@
             </child>
             <child>
               <object class="ttk.Button" id="move_ur">
+                <property name="command">partial(_move, "ur")</property>
                 <property name="image">button_ur.gif</property>
+                <property name="state">disabled</property>
                 <property name="text" translatable="yes">Button_2</property>
                 <layout>
                   <property name="column">2</property>
@@ -301,7 +305,9 @@
             </child>
             <child>
               <object class="ttk.Button" id="move_c">
+                <property name="command">partial(_move, "c")</property>
                 <property name="image">button_c.gif</property>
+                <property name="state">disabled</property>
                 <property name="text" translatable="yes">Button_3</property>
                 <layout>
                   <property name="column">1</property>
@@ -312,7 +318,9 @@
             </child>
             <child>
               <object class="ttk.Button" id="move_dl">
+                <property name="command">partial(_move, "dl")</property>
                 <property name="image">button_dl.gif</property>
+                <property name="state">disabled</property>
                 <property name="text" translatable="yes">Button_4</property>
                 <layout>
                   <property name="column">0</property>
@@ -323,13 +331,76 @@
             </child>
             <child>
               <object class="ttk.Button" id="move_dr">
+                <property name="command">partial(_move, "dr")</property>
                 <property name="image">button_dr.gif</property>
+                <property name="state">disabled</property>
                 <property name="text" translatable="yes">Button_5</property>
                 <layout>
                   <property name="column">2</property>
                   <property name="propagate">True</property>
                   <property name="row">3</property>
                 </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Separator" id="sep">
+                <property name="orient">vertical</property>
+                <layout>
+                  <property name="column">3</property>
+                  <property name="ipady">29</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                  <property name="rowspan">4</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Frame" id="frame_test_fire">
+                <property name="height">200</property>
+                <property name="width">200</property>
+                <layout>
+                  <property name="column">4</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                </layout>
+                <child>
+                  <object class="ttk.Label" id="power_level">
+                    <property name="text" translatable="yes">Power:</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="columnspan">1</property>
+                      <property name="propagate">True</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="ttk.Spinbox" id="spinbox_power_level">
+                    <property name="from_">0</property>
+                    <property name="increment">1</property>
+                    <property name="justify">left</property>
+                    <property name="to">100</property>
+                    <property name="width">2</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="propagate">True</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="ttk.Button" id="button_testfire">
+                    <property name="command">_test_fire</property>
+                    <property name="state">disabled</property>
+                    <property name="text" translatable="yes">Test fire</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="columnspan">3</property>
+                      <property name="propagate">True</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
               </object>
             </child>
           </object>
