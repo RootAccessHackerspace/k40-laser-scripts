@@ -10,8 +10,12 @@ __email__ = "d.armitage89@gmail.com"
 from pygcode import Line, GCodeLinearMove
 
 def bounding_box(gcode_file):
-    """Take in file of gcode, return dict of max and min bounding values"""
-    raise NotImplemented
+    """Take in file of gcode, return tuples of min/max bounding values"""
+    lines = [Line(line) for line in gcode_file]
+    params = [p.get_param_dict() for p in lines if p.word == "G01"]
+    x_pos = [p["X"] for p in params]
+    y_pos = [p["Y"] for p in params]
+    return ((min(x_pos),min(y_pos)), (max(x_pos),max(y_pos)))
 
 def box_gcode(min_xy, max_xy):
     """Take in min/max coordinate tuples, return G0 commands to bound it"""
