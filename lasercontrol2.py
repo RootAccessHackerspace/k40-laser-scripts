@@ -15,38 +15,33 @@ __email__ = "d.armitage89@gmail.com"
 __license__ = "MIT"
 
 ####---- Imports ----####
-from subprocess import check_output
-
 import sys
 import os
 import signal
-import pwd
-import time
-import random
-import crypt
-import ttk
 import logging
 import logging.config
 
 from threading import enumerate as thread_enum, active_count
-from Queue import Empty
 import yaml
 
 from inotify.adapters import Inotify
-from inotify.constants import IN_CLOSE_WRITE, IN_CREATE, IN_MODIFY
+from inotify.constants import IN_CLOSE_WRITE
 
 from Sender import Sender
+from NFCcontrol import initialize_nfc_reader, get_uid_noblock, verify_uid
+from NFCcontrol import get_user_uid, get_user_realname, is_current_user
+from GPIOcontrol import gpio_setup, disable_relay, relay_state
+from GPIOcontrol import switch_pin, toggle_pin
+# Variable imports
+from GPIOcontrol import OUT_PINS
 
 try:
-    import Tkinter as tk
     import tkMessageBox as messagebox
     import tkFileDialog as filedialog
 except ImportError:
-    import tkinter as tk
     import tkinter.messagebox as messagebox
     import tkinter.filedialog as filedialog
 import pygubu
-import wiringpi as GPIO
 
 
 ####---- Variables ----####
@@ -55,10 +50,6 @@ CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
 ## SPI
 ### For reference, should we ever go back to using a python SPI protocol
 #SPI = dict(cs=8, mosi=10, miso=9, sclk=11)
-## Relays and other outputs
-OUT_PINS = dict(laser=20, psu=21, grbl=27)
-## Sensors and other inputs
-IN_PINS = dict() # None currently
 
 # Directory where the gcode files will be stored from Visicut
 GDIR = "/home/users/Public"
@@ -76,7 +67,7 @@ GRBL_SERIAL = "/dev/ttyAMA0"
 ####---- Classes ----####
 class MainWindow(Sender):
     """Main window"""
-    # pylint: disable=too-many-ancestors,too-many-instance-attributes
+    # pylint: disable=too-many-ancestors,too-many-instance-attributes,too-few-public-methods
     def __init__(self):
         ## Sender methods
         Sender.__init__(self)
@@ -87,6 +78,7 @@ class MainWindow(Sender):
         self.mainwindow.protocol("WM_DELETE_WINDOW", self.__shutdown)
         builder.connect_callbacks(self)
         ## Variables & Buttons
+        self.file = []
         self.var = {}
         variable_list = ["status",
                          "connect_b",
@@ -103,7 +95,7 @@ class MainWindow(Sender):
         for var in variable_list:
             try:
                 self.var[var] = builder.get_variable(var)
-            except BaseException as ex:
+            except BaseException:
                 logger.warning("Variable not defined: %s", var)
         self.var["status"].set("Not Authorized")
         self.var["connect_b"].set("Connect")
@@ -126,7 +118,7 @@ class MainWindow(Sender):
         for button in button_list:
             try:
                 self.buttons[button] = builder.get_object(button)
-            except BaseException as ex:
+            except BaseException:
                 logger.warning("Button not defined: %s", button)
         # All done
         logger.info("Window started")
@@ -238,7 +230,7 @@ class MainWindow(Sender):
             logger.debug("Checking for created file...")
             if event is not None:
                 filename = event[3]
-                event_type = event[2]
+                #event_type = event[2]
                 logger.debug("File creation detected: %s", filename)
                 extension = os.path.splitext(filename)[1]
                 if extension in GCODE_EXT: #and not loading:
@@ -271,7 +263,6 @@ class MainWindow(Sender):
         self.var["filename"].set(os.path.basename(filepath))
         logger.debug("Reading %s into list", filepath)
         with open(filepath, 'rU') as gcode_file:
-            self.file = []
             for line in gcode_file:
                 logger.debug("Appending %s to self.file", line)
                 self.file.append(line)
@@ -343,177 +334,10 @@ class MainWindow(Sender):
             shutdown()
 
     def run(self):
+        """Mainloop run method"""
         self.mainwindow.after(0, self._update_status)
         self.mainwindow.after(0, self._file_scanning)
         self.mainwindow.mainloop()
-
-
-####---- Generic Functions ----####
-### NFC-related
-def initialize_nfc_reader():
-    """Verify that correct board is present, return firmware ver & name.
-
-    The function name is leftover from the initial function which used
-    Adafruit_PN532 to get the NFC data."""
-    for _ in range(3):
-        # Do this 3 times, because sometimes the board doesn't
-        # wake up fast enough...
-        raw_lines = check_output(["/usr/bin/nfc-scan-device", "-v"])
-        raw_lines = raw_lines.split("\n")
-        try:
-            chip_line = [line for line in raw_lines if "chip:" in line][0]
-            chip_name = chip_line.split(" ")[1]
-            chip_firm = chip_line.split(" ")[2]
-            break
-        except IndexError:
-            logger.debug("PN532 board not awake yet...")
-            time.sleep(1)
-    else:
-        chip_firm, chip_name = None, None
-    return (chip_firm, chip_name)
-
-## NFC UID get
-def dummy_get_uid():
-    """() -> random 4 byte hex string"""
-    return "%08x" % random.randrange(16**8)
-
-def get_uid_noblock(dummy=False):
-    """Uses libnfc via /usr/bin/nfc-list to return NFCID or None if not
-    just a single NFC tag is found"""
-    # Fetch dummy if needed, mostly for testing purposes
-    if dummy:
-        uid_ascii = dummy_get_uid()
-    else:
-        # Only search for ISO14443A tags, and be verbose about it
-        raw_output = check_output(["/usr/bin/nfc-list",
-                                   "-t", "1",
-                                   "-v"])
-        iso_found = [line for line in raw_output.split("\n")
-                     if "ISO14443A" in line]
-        num_found = iso_found[0].split()[0]
-        # Check for only one tag present
-        if num_found != "1":
-            logger.info("Incorrect number of tags: %s", num_found)
-            uid_ascii = None
-        else:
-            nfcid_line = [line for line in raw_output.split("\n")
-                          if "NFCID" in line]
-            # The UID will be after the colon
-            raw_uid = nfcid_line[0].split(":")[1]
-            uid_list = raw_uid.split()
-            uid_ascii = "".join([x for x in uid_list])
-    return uid_ascii
-
-def get_uid_block(dummy=False):
-    """Returns the UID of a tag, stopping script until UID is returned"""
-    uid = None
-    while uid is None:
-        uid = get_uid_noblock(dummy) # Just pass the dummy argument
-        time.sleep(0.5) # Prevent script from taking too much CPU time
-    return uid
-
-## NFC UID verify
-def dummy_verify_uid(uid):
-    """Takes a UID, verifies that it matches a dummy value,
-    and returns True/False
-
-    This is just a way of being able to check the other functions without
-    having to implement the API calls yet (esp. since the API doesn't even
-    exist yet)"""
-    return bool(uid)
-
-def verify_uid(uid):
-    """Takes a UID, returns True/False depending on user permission"""
-    return dummy_verify_uid(uid) # No API to use yet for users
-
-def get_user_uid(uid, cuid_file="/etc/pam_nfc.conf", dummy=False):
-    """Takes in a UID string, returns string of username."""
-    if not dummy:
-        if os.getuid() != 0:
-            logger.error("User does not have proper permission")
-            raise OSError("Check your priviledge")
-    cuidexist = os.path.isfile(cuid_file)
-    if not cuidexist:
-        raise IOError("Not a valid password file")
-
-    with open(cuid_file, "r") as cryptuids:
-        crypteduid = crypt.crypt(uid, 'RC')
-        username = None
-        for line in cryptuids:
-            if crypteduid in line:
-                username = line.split(" ")[0]
-    return username
-
-def is_current_user(username):
-    """Takes in a username, returns whether logged-in user"""
-    return username == os.environ['SUDO_USER']
-
-def get_user_realname():
-    """Returns a string of the current user's real name"""
-    cur_nam = os.getenv("SUDO_USER")
-    gecos = pwd.getpwnam(cur_nam)[4]
-    real_name = gecos.split(",")[0]
-    return real_name
-
-### GPIO-related
-def gpio_setup():
-    """Set up GPIO for use, returns True/False if all setup successful
-
-    Not only gets the GPIO for the board, but also sets the appropriate pins
-    for output and input."""
-    GPIO.wiringPiSetupGpio() # BCM mode
-    message = None
-    try:
-        for _, pin in OUT_PINS.iteritems():
-            logger.info("Configuring pin %d", pin)
-            GPIO.pinMode(pin, GPIO.OUTPUT)
-            GPIO.digitalWrite(pin, GPIO.HIGH)
-    except BaseException as message:
-        logger.exception("Failed to setup pins")
-        raise
-    if message:
-        board = False
-    else:
-        board = True
-    return board
-
-def disable_relay(pin, disabled=True):
-    """Take OUT pin, disable (by default) relay. Returns pin state.
-
-    disabled=False will enable the relay."""
-    if disabled:
-        logger.debug("Disabling pin %d", pin)
-        GPIO.digitalWrite(pin, GPIO.HIGH)
-    else:
-        logger.debug("Enabling pin %d", pin)
-        GPIO.digitalWrite(pin, GPIO.LOW)
-    return GPIO.digitalRead(pin)
-
-def relay_state(pin):
-    """Take in pin, return string state of the relay"""
-    logger.debug("relay_state() for pin %s", pin)
-    disabled = GPIO.digitalRead(pin)
-    logger.debug("Pin %s disabled: %s", pin, disabled)
-    state = "off"
-    if not disabled:
-        state = "on"
-    logger.debug("Relay state for pin %s is %s", pin, state)
-    return state
-
-def switch_pin(pin):
-    """Take pin, switch pin state"""
-    logger.info("Switching pin %d", pin)
-    cur_state = GPIO.digitalRead(pin)
-    new_state = not cur_state
-    GPIO.digitalWrite(pin, new_state)
-
-def toggle_pin(pin):
-    """Take pinn, switch pin states for short period of time"""
-    logger.info("Toggling pin %d", pin)
-    switch_pin(pin)
-    time.sleep(0.25)
-    switch_pin(pin)
-    logger.debug("Pin %d toggled", pin)
 
 ####---- MAIN ----####
 def main():
