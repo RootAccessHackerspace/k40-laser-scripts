@@ -27,5 +27,7 @@ def box_gcode(min_xy, max_xy):
 
 def mid_gcode(min_xy, max_xy):
     """Take in min/max coord tuples, return G0 to go to midpoint"""
-    raise NotImplemented
+    mid_x = float((min_xy[0]+max_xy[0])/2)
+    mid_y = float((min_xy[1]+max_xy[1])/2)
+    return str(GCodeLinearMove(X=mid_x, Y=mid_y))
 
