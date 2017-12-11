@@ -266,6 +266,74 @@
             </layout>
           </object>
         </child>
+        <child>
+          <object class="ttk.Labelframe" id="frame_motion">
+            <property name="height">200</property>
+            <property name="text" translatable="yes">Motion</property>
+            <property name="width">200</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="columnspan">3</property>
+              <property name="propagate">True</property>
+              <property name="row">1</property>
+            </layout>
+            <child>
+              <object class="ttk.Button" id="move_ul">
+                <property name="image">button_ul.gif</property>
+                <property name="text" translatable="yes">Button_1</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Button" id="move_ur">
+                <property name="image">button_ur.gif</property>
+                <property name="text" translatable="yes">Button_2</property>
+                <layout>
+                  <property name="column">2</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Button" id="move_c">
+                <property name="image">button_c.gif</property>
+                <property name="text" translatable="yes">Button_3</property>
+                <layout>
+                  <property name="column">1</property>
+                  <property name="propagate">True</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Button" id="move_dl">
+                <property name="image">button_dl.gif</property>
+                <property name="text" translatable="yes">Button_4</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="propagate">True</property>
+                  <property name="row">3</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Button" id="move_dr">
+                <property name="image">button_dr.gif</property>
+                <property name="text" translatable="yes">Button_5</property>
+                <layout>
+                  <property name="column">2</property>
+                  <property name="propagate">True</property>
+                  <property name="row">3</property>
+                </layout>
+              </object>
+            </child>
+          </object>
+        </child>
       </object>
     </child>
     <child>
