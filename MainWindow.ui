@@ -283,7 +283,7 @@
           <object class="ttk.Checkbutton" id="file_scan">
             <property name="offvalue">0</property>
             <property name="onvalue">1</property>
-            <property name="state">normal</property>
+            <property name="state">disabled</property>
             <property name="text" translatable="yes">Automatic File Loading</property>
             <property name="variable">int:file_scan_auto</property>
             <layout>

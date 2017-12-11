@@ -32,9 +32,6 @@ from threading import enumerate as thread_enum, active_count
 from Queue import Empty
 import yaml
 
-from inotify.adapters import Inotify
-from inotify.constants import IN_CLOSE_WRITE, IN_CREATE, IN_MODIFY
-
 from Sender import Sender
 
 try:
@@ -94,7 +91,6 @@ class MainWindow(Sender):
                          "laser_label",
                          "filename",
                          "file_found",
-                         "file_scan_auto",
                          "pos_x",
                          "pos_y",
                          "pos_z",
@@ -107,9 +103,6 @@ class MainWindow(Sender):
                 logger.warning("Variable not defined: %s", var)
         self.var["status"].set("Not Authorized")
         self.var["connect_b"].set("Connect")
-        self.var["file_scan_auto"].set(1)
-        self.monitor = Inotify()
-        self.monitor.add_watch(GDIR, IN_CLOSE_WRITE)
         self.buttons = {}
         button_list = ["button_conn",
                        "button_home",
@@ -121,7 +114,6 @@ class MainWindow(Sender):
                        "button_start",
                        "button_pause",
                        "button_stop",
-                       "file_scan",
                       ]
         for button in button_list:
             try:
@@ -230,25 +222,6 @@ class MainWindow(Sender):
     def _hard_reset(self):
         toggle_pin(OUT_PINS["grbl"])
 
-    def _file_scanning(self):
-        """Scan directory for files that have been recently written"""
-        to_scan = self.var["file_scan_auto"].get()
-        event = self.monitor.event_gen().next()
-        if to_scan:
-            logger.debug("Checking for created file...")
-            if event is not None:
-                filename = event[3]
-                event_type = event[2]
-                logger.debug("File creation detected: %s", filename)
-                extension = os.path.splitext(filename)[1]
-                if extension in GCODE_EXT: #and not loading:
-                    logger.info("Auto-loading %s", filename)
-                    self.var["file_found"].set("")
-                    self._read_file(os.path.join(GDIR, filename))
-        else:
-            logger.debug("Not checking for files.")
-        self.mainwindow.after(1000, self._file_scanning)
-
     def _select_filepath(self):
         """Use tkfiledialog to select the appropriate file"""
         valid_files = [("GCODE", ("*.gc",
@@ -336,7 +309,6 @@ class MainWindow(Sender):
         Note: Auth will be lost.
         """
         if messagebox.askokcancel("Quit?", message):
-            self.monitor.remove_watch(GDIR)
             self.mainwindow.update_idletasks()
             self._close()
             self.mainwindow.destroy()
@@ -344,7 +316,6 @@ class MainWindow(Sender):
 
     def run(self):
         self.mainwindow.after(0, self._update_status)
-        self.mainwindow.after(0, self._file_scanning)
         self.mainwindow.mainloop()
 
 
