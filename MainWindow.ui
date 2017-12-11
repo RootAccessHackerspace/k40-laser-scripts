@@ -276,6 +276,16 @@
               <property name="columnspan">3</property>
               <property name="propagate">True</property>
               <property name="row">1</property>
+              <columns>
+                <column id="3">
+                  <property name="minsize">0</property>
+                  <property name="pad">4</property>
+                  <property name="weight">0</property>
+                </column>
+                <column id="4">
+                  <property name="pad">0</property>
+                </column>
+              </columns>
             </layout>
             <child>
               <object class="ttk.Button" id="move_ul">
@@ -406,6 +416,7 @@
             </child>
             <child>
               <object class="ttk.Button" id="button_box">
+                <property name="command">partial(_move, "b")</property>
                 <property name="text" translatable="yes">Bounding box</property>
                 <layout>
                   <property name="column">4</property>
@@ -489,7 +500,7 @@
           <property name="column">1</property>
           <property name="propagate">True</property>
           <property name="row">1</property>
-          <property name="sticky">w</property>
+          <property name="sticky">nw</property>
         </layout>
         <child>
           <object class="tk.Label" id="label_x">
