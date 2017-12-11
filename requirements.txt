@@ -1,6 +1,7 @@
 inotify==0.2.8
 pipdeptree==0.10.1
 pudb==2017.1.4
+pygcode==0.2.1
 pygubu==0.9.8.1
 pylint==1.7.4
 pyserial==3.4
