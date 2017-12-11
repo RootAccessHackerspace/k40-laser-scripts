@@ -15,7 +15,15 @@ def bounding_box(gcode_file):
 
 def box_gcode(min_xy, max_xy):
     """Take in min/max coordinate tuples, return G0 commands to bound it"""
-    raise NotImplemented
+    gcode = []
+    gcode.append(GCodeLinearMove(X=min_xy[0], Y=min_xy[1]))
+    gcode.append(GCodeLinearMove(X=max_xy[0], Y=min_xy[1]))
+    gcode.append(GCodeLinearMove(X=max_xy[0], Y=max_xy[1]))
+    gcode.append(GCodeLinearMove(X=min_xy[0], Y=max_xy[1]))
+    gcode.append(GCodeLinearMove(X=min_xy[0], Y=min_xy[1]))
+    # Convert from GCodeLinearMove class to string
+    gcode = [str(line) for line in gcode]
+    return gcode
 
 def mid_gcode(min_xy, max_xy):
     """Take in min/max coord tuples, return G0 to go to midpoint"""
