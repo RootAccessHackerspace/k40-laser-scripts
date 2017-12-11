@@ -379,8 +379,9 @@
                     <property name="from_">0</property>
                     <property name="increment">1</property>
                     <property name="justify">left</property>
+                    <property name="state">normal</property>
                     <property name="to">100</property>
-                    <property name="width">2</property>
+                    <property name="width">3</property>
                     <layout>
                       <property name="column">1</property>
                       <property name="propagate">True</property>
@@ -401,6 +402,16 @@
                     </layout>
                   </object>
                 </child>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Button" id="button_box">
+                <property name="text" translatable="yes">Bounding box</property>
+                <layout>
+                  <property name="column">4</property>
+                  <property name="propagate">True</property>
+                  <property name="row">1</property>
+                </layout>
               </object>
             </child>
           </object>
