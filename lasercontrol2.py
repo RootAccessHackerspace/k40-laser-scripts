@@ -333,9 +333,8 @@ class MainWindow(Sender):
             if direction == "c":
                 pass
             if direction == "box":
-                gcode = self.gcodefile.box_gcode()
-                for command in gcode:
-                    self.queue.put(command)
+                for command in self.gcodefile.box_gcode():
+                    self._send_gcode(command)
         else:
             messagebox.showerror("Device", "Please connect first")
 
