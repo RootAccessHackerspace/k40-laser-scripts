@@ -106,12 +106,27 @@ class MainWindow(Sender):
                        "button_start",
                        "button_pause",
                        "button_stop",
+                       "move_ul",
+                       "move_ur",
+                       "move_dr",
+                       "move_dl",
+                       "move_c",
+                       "button_box",
+                       "button_testfire",
                       ]
         for button in button_list:
             try:
                 self.buttons[button] = builder.get_object(button)
             except BaseException:
                 logger.warning("Button not defined: %s", button)
+        self.objects = {}
+        other_objects = ["spinbox_power_level",
+                        ]
+        for obj in other_objects:
+            try:
+                self.objects[obj] = builder.get_object(obj)
+            except BaseException:
+                logger.warning("Object not defined: %s", obj)
         # All done
         logger.info("Window started")
 
@@ -294,6 +309,28 @@ class MainWindow(Sender):
                 logger.debug("Queued line: %s", line)
                 self.queue.put(line)
         self.queue.put(("DONE",))
+
+    def _move(self, direction):
+        """Send appropriate Gcode to move the laser according to direction"""
+        logger.info("Moving %s", direction)
+
+    def _move_ul(self):
+        self._move("ul")
+
+    def _move_dl(self):
+        self._move("dl")
+
+    def _move_dr(self):
+        self._move("dr")
+
+    def _move_ur(self):
+        self._move("ur")
+
+    def _move_c(self):
+        self._move("c")
+
+    def _move_box(self):
+        self._move("box")
 
     def __shutdown(self):
         message = """Are you sure you want to close?
