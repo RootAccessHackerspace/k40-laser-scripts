@@ -417,6 +417,7 @@
             <child>
               <object class="ttk.Button" id="button_box">
                 <property name="command">partial(_move, "b")</property>
+                <property name="state">disabled</property>
                 <property name="text" translatable="yes">Bounding box</property>
                 <layout>
                   <property name="column">4</property>
