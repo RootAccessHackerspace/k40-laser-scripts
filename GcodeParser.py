@@ -31,7 +31,7 @@ class GcodeFile(object):
         for line in self.file:
             self.gcode.append(Line(line))
 
-    def bounding_box(self):
+    def bounding_box_coords(self):
         """Take in file of gcode, return tuples of min/max bounding values"""
         if self.file or self.gcode:
             logger.error("Load file first")
@@ -67,6 +67,6 @@ class GcodeFile(object):
         gcode = [str(line) for line in gcode]
         return gcode
 
-    def mid_gcode(min_xy, max_xy):
+    def mid_coords(min_xy, max_xy):
         raise NotImplemented
 
