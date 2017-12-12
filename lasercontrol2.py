@@ -332,6 +332,18 @@ class MainWindow(Sender):
     def _move_box(self):
         self._move("box")
 
+    def _test_fire(self):
+        percent = int(self.objects["spinbox_power_level"].get())
+        level = float(percent)/100 * 500
+        logger.info("Test firing @ %d percent of 500 (S%f)", percent, level)
+        fire_list = ["M3 S{}".format(level),
+                     "G1 Z-1 F600",
+                     "M5",
+                     "G0 Z0",
+                    ]
+        for command in fire_list:
+            self._send_gcode(command)
+
     def __shutdown(self):
         message = """Are you sure you want to close?
         Note: Auth will be lost.
