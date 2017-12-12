@@ -35,7 +35,7 @@ class GcodeFile(object):
         """Convert gcode into format that can be easily manipulated"""
         logger.info("Converting file")
         for line in self.file:
-            logger.debug("raw line: %s\nLine(line): %s", line, Line(line))
+            logger.debug("raw line: %sLine(line): %s", line, Line(line))
             self.gcode.append(Line(line))
 
     def bounding_box_coords(self):
@@ -45,10 +45,19 @@ class GcodeFile(object):
             return None
         if (None, None) in self.extrema.values():
             logger.info("Calculating extrema coordinates")
-            logger.debug("Gcode dump: %s", [p.get_param_dict() for p in self.gcode])
-            params = [p.get_param_dict()
-                      for p in self.gcode
-                      if p.word == "G01"]
+            gcodes = [line.gcodes for line in self.gcode]
+            logger.debug("gcodes: %s", gcodes)
+            params = []
+            for item in gcodes:
+                logger.debug("item: %s", item)
+                if len(item) > 0:
+                    param_list = [x for x in item if x.word == "G01"]
+                    logger.debug("param_list: %s", param_list)
+                    try:
+                        params.append(param_list[0].get_param_dict())
+                    except IndexError:
+                        logger.debug("Not a linear move")
+                        pass
             x_pos = [p["X"] for p in params]
             y_pos = [p["Y"] for p in params]
             self.extrema["X"] = (min(x_pos), max(x_pos))
