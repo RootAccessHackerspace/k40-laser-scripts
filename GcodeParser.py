@@ -37,6 +37,7 @@ class GcodeFile(object):
         for line in self.file:
             logger.debug("raw line: %sLine(line): %s", line, Line(line))
             self.gcode.append(Line(line))
+        self.file.seek(0)
 
     def bounding_box_coords(self):
         """Take in file of gcode, return tuples of min/max bounding values"""
