@@ -8,6 +8,9 @@ __email__ = "d.armitage89@gmail.com"
 
 ####---- Imports ----####
 from pygcode import Line, GCodeLinearMove
+import logging
+
+logger = logging.getLogger(__name__) #pylint: disable=invalid-name
 
 class GcodeFile(object):
     """A file of gcode"""
@@ -19,24 +22,30 @@ class GcodeFile(object):
                            )
         self.mids = dict(X=None, Y=None)
         if self.file and not self.gcode:
+            logger.debug("Converting file to gcode on init")
             self.__convert_gcode_internal()
 
     def add_file(self, gcode_file):
         """Read in a file of Gcode"""
+        logger.info("File added")
         self.file = gcode_file
         self.__convert_gcode_internal()
 
     def __convert_gcode_internal(self):
         """Convert gcode into format that can be easily manipulated"""
+        logger.info("Converting file")
         for line in self.file:
+            logger.debug("raw line: %s\nLine(line): %s", line, Line(line))
             self.gcode.append(Line(line))
 
     def bounding_box_coords(self):
         """Take in file of gcode, return tuples of min/max bounding values"""
-        if self.file or self.gcode:
+        if not self.file or not self.gcode:
             logger.error("Load file first")
             return None
         if (None, None) in self.extrema.values():
+            logger.info("Calculating extrema coordinates")
+            logger.debug("Gcode dump: %s", [p.get_param_dict() for p in self.gcode])
             params = [p.get_param_dict()
                       for p in self.gcode
                       if p.word == "G01"]
@@ -71,8 +80,10 @@ class GcodeFile(object):
         """Return (x,y) of coordinates of middle of file"""
         if (None, None) in self.extrema.values():
             self.bounding_box_coords()
-        self.mids["X"] = sum(self.extrema["X"]) / 2.0
-        self.mids["Y"] = sum(self.extrema["Y"]) / 2.0
+        if None in self.mids.values():
+            logger.info("Calculating mid values")
+            self.mids["X"] = sum(self.extrema["X"]) / 2.0
+            self.mids["Y"] = sum(self.extrema["Y"]) / 2.0
         return (self.mids["X"], self.mids["Y"])
 
     def mid_gcode(self):
