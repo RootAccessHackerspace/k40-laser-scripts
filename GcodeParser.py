@@ -51,7 +51,7 @@ class GcodeFile(object):
         return (self.extrema["UL"], self.extrema["DR"])
 
     def box_gcode(self):
-        """Return G0 commands to bound gcode file"""
+        """Return str G0 commands to bound gcode file"""
         gcode = []
         gcode.append(GCodeLinearMove(X=self.extrema["X"][0],
                                      Y=self.extrema["Y"][0])) #UL
@@ -67,6 +67,15 @@ class GcodeFile(object):
         gcode = [str(line) for line in gcode]
         return gcode
 
-    def mid_coords(min_xy, max_xy):
-        raise NotImplemented
+    def mid_coords(self):
+        """Return (x,y) of coordinates of middle of file"""
+        if (None, None) in self.extrema.values():
+            self.bounding_box_coords()
+        self.mids["X"] = sum(self.extrema["X"]) / 2.0
+        self.mids["Y"] = sum(self.extrema["Y"]) / 2.0
+        return (self.mids["X"], self.mids["Y"])
+
+    def mid_gcode(self):
+        """Return str G0 command to go to middle coordinates"""
+        return [str(GCodeLinearMove(X=self.mids["X"], Y=self.mids["Y"]))]
 
