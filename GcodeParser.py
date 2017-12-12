@@ -7,7 +7,7 @@ __email__ = "d.armitage89@gmail.com"
 
 
 ####---- Imports ----####
-from pygcode import Line, GCodeLinearMove
+from pygcode import Line, GCodeRapidMove
 import logging
 
 logger = logging.getLogger(__name__) #pylint: disable=invalid-name
@@ -74,19 +74,23 @@ class GcodeFile(object):
         if (None, None) in self.extrema.values():
             self.bounding_box_coords()
         gcode = []
-        gcode.append(GCodeLinearMove(X=self.extrema["X"][0],
-                                     Y=self.extrema["Y"][0])) #UL
-        gcode.append(GCodeLinearMove(X=self.extrema["X"][0],
-                                     Y=self.extrema["Y"][1])) #UR
-        gcode.append(GCodeLinearMove(X=self.extrema["X"][1],
-                                     Y=self.extrema["Y"][1])) #DR
-        gcode.append(GCodeLinearMove(X=self.extrema["X"][1],
-                                     Y=self.extrema["Y"][0])) #DL
-        gcode.append(GCodeLinearMove(X=self.extrema["X"][0],
-                                     Y=self.extrema["Y"][0])) #UL cycle
+        gcode.append("G21")
+        gcode.append("G90")
+        gcode.append(GCodeRapidMove(X=self.extrema["X"][0],
+                                    Y=self.extrema["Y"][0])) #UL
+        gcode.append(GCodeRapidMove(X=self.extrema["X"][0],
+                                    Y=self.extrema["Y"][1])) #UR
+        gcode.append(GCodeRapidMove(X=self.extrema["X"][1],
+                                    Y=self.extrema["Y"][1])) #DR
+        gcode.append(GCodeRapidMove(X=self.extrema["X"][1],
+                                    Y=self.extrema["Y"][0])) #DL
+        gcode.append(GCodeRapidMove(X=self.extrema["X"][0],
+                                    Y=self.extrema["Y"][0])) #UL cycle
         # Convert from GCodeLinearMove class to string
-        gcode = [str(line) for line in gcode]
-        return gcode
+        gcode_str = [str(line) for line in gcode]
+        logger.debug("gcode: %s", gcode)
+        logger.debug("gcode_str: %s", gcode_str)
+        return gcode_str
 
     def mid_coords(self):
         """Return (x,y) of coordinates of middle of file"""
@@ -102,5 +106,5 @@ class GcodeFile(object):
         """Return str G0 command to go to middle coordinates"""
         if None in self.mids.values():
             self.mid_coords()
-        return [str(GCodeLinearMove(X=self.mids["X"], Y=self.mids["Y"]))]
+        return [str(GCodeRapidMove(X=self.mids["X"], Y=self.mids["Y"]))]
 
