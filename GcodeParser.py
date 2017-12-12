@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding=UTF-8
 """Module containing Gcode parsing functions"""
+from __future__ import print_function
 
 __author__ = "Dylan Armitage"
 __email__ = "d.armitage89@gmail.com"
@@ -74,8 +75,6 @@ class GcodeFile(object):
         if (None, None) in self.extrema.values():
             self.bounding_box_coords()
         gcode = []
-        gcode.append("G21")
-        gcode.append("G90")
         gcode.append(GCodeRapidMove(X=self.extrema["X"][0],
                                     Y=self.extrema["Y"][0])) #UL
         gcode.append(GCodeRapidMove(X=self.extrema["X"][0],
@@ -108,3 +107,9 @@ class GcodeFile(object):
             self.mid_coords()
         return [str(GCodeRapidMove(X=self.mids["X"], Y=self.mids["Y"]))]
 
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+    stress = GcodeFile(open("serial_stress_test.gcode", "r"))
+    print(stress.bounding_box_coords())
+    print(stress.box_gcode())
