@@ -29,6 +29,7 @@ from NFCcontrol import initialize_nfc_reader, get_uid_noblock, verify_uid
 from NFCcontrol import get_user_uid, get_user_realname, is_current_user
 from GPIOcontrol import gpio_setup, disable_relay, relay_state
 from GPIOcontrol import switch_pin, toggle_pin
+from GcodeParser import GcodeFile
 # Variable imports
 from GPIOcontrol import OUT_PINS
 
@@ -76,6 +77,7 @@ class MainWindow(Sender):
         builder.connect_callbacks(self)
         ## Variables & Buttons
         self.file = []
+        self.gcodefile = None
         self.var = {}
         variable_list = ["status",
                          "connect_b",
@@ -251,6 +253,7 @@ class MainWindow(Sender):
         self.var["filename"].set(os.path.basename(filepath))
         logger.debug("Reading %s into list", filepath)
         with open(filepath, 'rU') as gcode_file:
+            self.gcodefile = GcodeFile(gcode_file)
             for line in gcode_file:
                 logger.debug("Appending %s to self.file", line)
                 self.file.append(line)
@@ -313,6 +316,29 @@ class MainWindow(Sender):
     def _move(self, direction):
         """Send appropriate Gcode to move the laser according to direction"""
         logger.info("Moving %s", direction)
+        if not self.file:
+            messagebox.showerror("File", "File must be loaded first")
+            return
+        else:
+            self.gcodefile.bounding_box_coords()
+        if self.serial:
+            if direction == "ul":
+                pass
+            if direction == "dl":
+                pass
+            if direction == "dr":
+                pass
+            if direction == "ur":
+                pass
+            if direction == "c":
+                pass
+            if direction == "box":
+                gcode = self.gcodefile.box_gcode()
+                for command in gcode:
+                    self.queue.put(command)
+        else:
+            messagebox.showerror("Device", "Please connect first")
+
 
     def _move_ul(self):
         self._move("ul")
