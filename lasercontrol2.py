@@ -252,8 +252,8 @@ class MainWindow(Sender):
         """Take filepath, set filename StringVar"""
         self.var["filename"].set(os.path.basename(filepath))
         logger.debug("Reading %s into list", filepath)
+        self.gcodefile = GcodeFile(filepath)
         with open(filepath, 'rU') as gcode_file:
-            self.gcodefile = GcodeFile(gcode_file)
             for line in gcode_file:
                 logger.debug("Appending %s to self.file", line)
                 self.file.append(line)
