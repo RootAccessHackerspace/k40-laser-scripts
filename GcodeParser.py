@@ -31,11 +31,12 @@ class GcodeFile(object):
     def __init__(self, gcode_file=None):
         self.file = gcode_file
         self.flat_xy_gen = None
+        self.gcode = None
         self.extrema = dict(X=[float("inf"), 0], Y=[float("inf"), 0],
                             UL=(None, None), DR=(None, None),
                            )
         self.mids = dict(X=None, Y=None)
-        if self.file:
+        if self.file and not self.gcode:
             logger.debug("Converting file to gcode on init")
             self.add_file(gcode_file)
         logger.info("GcodeFile initialized!")
@@ -44,14 +45,14 @@ class GcodeFile(object):
         """Read in a file of Gcode"""
         logger.info("File added")
         self.file = gcode_file
-        self.__convert_gcode_internal()
+        self.gcode = self.__convert_gcode_internal()
 
     def __convert_gcode_internal(self):
         """Convert gcode into format that can be easily manipulated"""
         logger.info("Converting file to internal format")
         with open(self.file, "rU") as gcode_file:
             logger.info("Reading %s", self.file)
-            gcode = (WHITESPACE.sub("", line) for line in gcode_file)
+            gcode = [WHITESPACE.sub("", line) for line in gcode_file]
             groups = (RAPID.match(line).groups()
                       for line in gcode
                       if bool(RAPID.match(line))
@@ -59,6 +60,7 @@ class GcodeFile(object):
             self.flat_xy_gen = (xory for tup in groups for xory in tup)
             logger.debug("Generators created")
             self._calc_extrema_coords()
+            return gcode
 
 
     def _calc_extrema_coords(self):
@@ -91,7 +93,8 @@ class GcodeFile(object):
             logger.error("Load file first")
         if (None, None) in self.extrema.values():
             self.__convert_gcode_internal()
-        logger.info("Corner extrema: %s & %s", self.extrema["UL"], self.extrema["DR"])
+        logger.info("Corner extrema: %s & %s",
+                    self.extrema["UL"], self.extrema["DR"])
         return (self.extrema["UL"], self.extrema["DR"])
 
     def box_gcode(self):
@@ -99,12 +102,18 @@ class GcodeFile(object):
         if (None, None) in self.extrema.values():
             self.bounding_box_coords()
         gcode = ["G90", "G21"]
-        logger.info("Using X/Y values of %s/%s", self.extrema["X"], self.extrema["Y"])
-        gcode.append("G0X{x}Y{y}".format(x=self.extrema["UL"][0], y=self.extrema["UL"][1]))
-        gcode.append("G0X{x}Y{y}".format(x=self.extrema["UL"][0], y=self.extrema["DR"][1]))
-        gcode.append("G0X{x}Y{y}".format(x=self.extrema["DR"][0], y=self.extrema["DR"][1]))
-        gcode.append("G0X{x}Y{y}".format(x=self.extrema["DR"][0], y=self.extrema["UL"][1]))
-        gcode.append("G0X{x}Y{y}".format(x=self.extrema["UL"][0], y=self.extrema["UL"][1]))
+        logger.info("Using X/Y values of %s/%s",
+                    self.extrema["X"], self.extrema["Y"])
+        gcode.append("G0X{x}Y{y}".format(x=self.extrema["UL"][0],
+                                         y=self.extrema["UL"][1]))
+        gcode.append("G0X{x}Y{y}".format(x=self.extrema["UL"][0],
+                                         y=self.extrema["DR"][1]))
+        gcode.append("G0X{x}Y{y}".format(x=self.extrema["DR"][0],
+                                         y=self.extrema["DR"][1]))
+        gcode.append("G0X{x}Y{y}".format(x=self.extrema["DR"][0],
+                                         y=self.extrema["UL"][1]))
+        gcode.append("G0X{x}Y{y}".format(x=self.extrema["UL"][0],
+                                         y=self.extrema["UL"][1]))
         logger.debug("gcode: %s", gcode)
         return gcode
 
@@ -128,11 +137,14 @@ class GcodeFile(object):
         """Return str G0 command to go to middle coordinates"""
         if None in self.mids.values():
             self._calc_mid_coords()
-        return [str(GCodeRapidMove(X=self.mids["X"], Y=self.mids["Y"]))]
+        gcode = ["G21", "G90"]
+        gcode.append("G1X{x}Y{y}".format(x=self.mids["X"],
+                                         y=self.mids["Y"]))
+        return gcode
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    stress = GcodeFile("serial_stress_test.gcode")
+    stress = GcodeFile("serial_stress_test.gcode") # pylint: disable=invalid-name
     print(stress.bounding_box_coords())
     print(stress.box_gcode())

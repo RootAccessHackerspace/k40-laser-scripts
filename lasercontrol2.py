@@ -253,11 +253,7 @@ class MainWindow(Sender):
         self.var["filename"].set(os.path.basename(filepath))
         logger.debug("Reading %s into list", filepath)
         self.gcodefile = GcodeFile(filepath)
-        with open(filepath, 'rU') as gcode_file:
-            for line in gcode_file:
-                logger.debug("Appending %s to self.file", line)
-                self.file.append(line)
-            logger.debug("self.file length: %d", len(self.file))
+        self.file = self.gcodefile.gcode
 
     def _open(self, device=GRBL_SERIAL):
         """Open serial device"""
