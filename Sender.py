@@ -271,6 +271,29 @@ class Sender(object):
         self.pos = tuple(float(f) for f in position[1:])
         logger.debug("Position: %s", self.pos)
 
+    def __process_messages(self, message):
+        """Master message processing"""
+        if ("ALARM" or "ERROR") in message:
+            self.__parse_alarm(message)
+        elif message.find("<") == 0:
+            logger.debug("Status message received: %s", message)
+            status_msg = message[1:-1]
+            status_fields = status_msg.split("|")
+            #self.log.put(status_fields[0])
+            self.log = status_fields[0]
+            if "error" in status_fields[0].lower():
+                logger.error("Grbl Error: %s", message)
+            elif "alarm" in status_fields[0].lower():
+                logger.error("Grbl Alarm: %s", message)
+            for field in status_fields[1:]:
+                if "MPos:" in field:
+                    self.__parse_position(field)
+        elif "MSG" in message:
+            recv_msg = message[1:-1]
+            logger.info("Grbl %s", recv_msg)
+        else:
+            logger.error("Unexpected output: %s", message)
+
 
     def _serial_io(self):
         """Process to perform I/O on GRBL
@@ -333,27 +356,8 @@ class Sender(object):
                                 sent_line.popleft()
                             except IndexError:
                                 logger.debug("char_line already empty")
-                        elif ("ALARM" or "ERROR") in out_temp:
-                            self.__parse_alarm(out_temp)
-                        elif out_temp.find("<") == 0:
-                            logger.debug("Status message received: %s", out_temp)
-                            status_msg = out_temp[1:-1]
-                            status_fields = status_msg.split("|")
-                            #self.log.put(status_fields[0])
-                            self.log = status_fields[0]
-                            if "error" in status_fields[0].lower():
-                                error_count += 1
-                                logger.error("Grbl Error: %s", out_temp)
-                            elif "alarm" in status_fields[0].lower():
-                                logger.error("Grbl Alarm: %s", out_temp)
-                            for field in status_fields[1:]:
-                                if "MPos:" in field:
-                                    self.__parse_position(field)
-                        elif "MSG" in out_temp:
-                            recv_msg = out_temp[1:-1]
-                            logger.info("Grbl %s", recv_msg)
                         else:
-                            logger.error("Unexpected output: %s", out_temp)
+                            self.__process_messages(out_temp)
                 self.serial.write(line_block + "\n")
             else:
                 out_temp = self.serial.readline().strip()
@@ -366,27 +370,8 @@ class Sender(object):
                             sent_line.popleft
                         except IndexError:
                             logger.debug("char_line already empty")
-                    elif ("ALARM" or "ERROR") in out_temp:
-                        self.__parse_alarm(out_temp)
-                    elif out_temp.find("<") == 0:
-                        logger.debug("Status message received: %s", out_temp)
-                        status_msg = out_temp[1:-1]
-                        status_fields = status_msg.split("|")
-                        #self.log.put(status_fields[0])
-                        self.log = status_fields[0]
-                        if "error" in status_fields[0].lower():
-                            error_count += 1
-                            logger.error("Grbl Error: %s", out_temp)
-                        elif "alarm" in status_fields[0].lower():
-                            logger.error("Grbl Alarm: %s", out_temp)
-                        for field in status_fields[1:]:
-                            if "MPos:" in field:
-                                self.__parse_position(field)
-                    elif "MSG" in out_temp:
-                        recv_msg = out_temp[1:-1]
-                        logger.info("Grbl %s", recv_msg)
                     else:
-                        logger.error("Unexpected output: %s", out_temp)
+                        self.__process_messages(out_temp)
                 if done and line_count == gcode_count:
                     self.progress = 0.0
                     done = False
