@@ -116,6 +116,7 @@ class MainWindow(Sender):
                        "move_c",
                        "button_box",
                        "button_testfire",
+                       "button_corners",
                       ]
         for button in button_list:
             try:
@@ -349,6 +350,14 @@ class MainWindow(Sender):
 
     def _move_box(self):
         self._move("box")
+
+    def _move_mc(self):
+        """Mark all outer corners of workpiece"""
+        level = float(self.objects["spinbox_power_level"].get())/100 * 500
+        for corner in ("ul", "ur", "dr", "dl"):
+            self._move(corner)
+            self._test_fire()
+        self._move("00")
 
     def _test_fire(self):
         percent = int(self.objects["spinbox_power_level"].get())
