@@ -20,6 +20,7 @@ import os
 import signal
 import logging
 import logging.config
+import coloredlogs
 
 from threading import enumerate as thread_enum, active_count
 import yaml
@@ -89,7 +90,7 @@ class MainWindow(Sender):
                          "pos_y",
                          "pos_z",
                          "progress_bar",
-                         "trace"
+                         "trace",
                         ]
         for var in variable_list:
             try:
@@ -424,8 +425,10 @@ def setup_logging(default_path='logging.yaml',
         with open(path, "rt") as conf_file:
             config = yaml.safe_load(conf_file.read())
         logging.config.dictConfig(config)
+        coloredlogs.install()
     else:
         logging.basicConfig(level=default_level)
+        coloredlogs.install(level=default_level)
 
 ####---- BODY ----####
 setup_logging()
