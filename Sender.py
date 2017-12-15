@@ -288,13 +288,6 @@ class Sender(object):
         while self.thread: # pylint: disable=too-many-nested-blocks
             # TODO: reduce number of nested blocks
             t_curr = time.time()
-            logger.debug(("serial_io pre DEBUG:",
-                          {"line_count": line_count,
-                           "error_Count": error_count,
-                           "gcode_count": gcode_count,
-                           "char_line": char_line,
-                           "line": line,
-                          }))
             # Poll status if enough time has passed
             if t_curr-t_poll > SERIAL_POLL:
                 self.serial.write("?")
@@ -321,19 +314,8 @@ class Sender(object):
                 # Track number of characters in the Grbl buffer
                 char_line.append(len(line_block)+1)
                 sent_line.append(line_block)
-                logger.debug(("serial_io dur DEBUG line:",
-                              {"line": line,
-                               "line_block": line_block,
-                               "line_count": line_count,
-                               "char_line": char_line,
-                              }))
                 while (sum(char_line) >= RX_BUFFER_SIZE-1
                        or self.serial.in_waiting > 0):
-                    logger.debug(("serial_io dur DEBUG:",
-                                  {"sum(char_line)": sum(char_line),
-                                   "RX_BUFFER_SIZE-1": RX_BUFFER_SIZE-1,
-                                   "serial.in_waiting": self.serial.in_waiting,
-                                  }))
                     out_temp = self.serial.readline().strip()
                     if len(out_temp) > 0:
                         if out_temp.find("ok") >= 0:
@@ -398,12 +380,6 @@ class Sender(object):
                 if done and line_count == gcode_count:
                     self.progress = 0.0
                     done = False
-            logger.debug(("serial_io post DEBUG:",
-                          {"line_count": line_count,
-                           "error_Count": error_count,
-                           "gcode_count": gcode_count,
-                           "char_line": char_line,
-                           "line": line,
                           }))
         logger.info("Closing down serial_io")
 
