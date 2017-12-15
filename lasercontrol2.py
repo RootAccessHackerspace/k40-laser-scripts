@@ -117,6 +117,7 @@ class MainWindow(Sender):
                        "button_box",
                        "button_testfire",
                        "button_corners",
+                       "button_00",
                       ]
         for button in button_list:
             try:
@@ -312,7 +313,7 @@ class MainWindow(Sender):
                 self.queue.put(line)
         self.queue.put(("DONE",))
 
-    def _move(self, direction):
+    def _move(self, direction="origin"):
         """Send appropriate Gcode to move the laser according to direction"""
         logger.info("Moving %s", direction)
         if not self.file:

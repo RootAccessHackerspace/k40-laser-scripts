@@ -288,13 +288,25 @@
               </columns>
             </layout>
             <child>
+              <object class="ttk.Button" id="button_00">
+                <property name="command">_move</property>
+                <property name="state">disabled</property>
+                <property name="text" translatable="yes">X0, Y0</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+            <child>
               <object class="ttk.Frame" id="frame_corners">
                 <property name="height">200</property>
                 <property name="width">200</property>
                 <layout>
                   <property name="column">0</property>
                   <property name="propagate">True</property>
-                  <property name="row">0</property>
+                  <property name="row">1</property>
                 </layout>
                 <child>
                   <object class="ttk.Button" id="move_ul">
@@ -383,6 +395,7 @@
                   <property name="column">4</property>
                   <property name="propagate">True</property>
                   <property name="row">0</property>
+                  <property name="rowspan">2</property>
                 </layout>
                 <child>
                   <object class="ttk.Frame" id="frame_test_fire">
