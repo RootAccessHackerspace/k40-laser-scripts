@@ -60,6 +60,7 @@ class GcodeFile(object):
             self.flat_xy_gen = (xory for tup in groups for xory in tup)
             logger.debug("Generators created")
             self._calc_extrema_coords()
+            self._calc_mid_coords()
             return gcode
 
 
@@ -133,13 +134,26 @@ class GcodeFile(object):
             self._calc_mid_coords()
         return (self.mids["X"], self.mids["Y"])
 
-    def mid_gcode(self):
-        """Return str G0 command to go to middle coordinates"""
-        if None in self.mids.values():
-            self._calc_mid_coords()
+    def corner_gcode(self, corner):
+        """Return str G0 commands to go to corners of workpiece"""
         gcode = ["G21", "G90"]
-        gcode.append("G1X{x}Y{y}".format(x=self.mids["X"],
-                                         y=self.mids["Y"]))
+        if corner == "ul":
+            gcode.append("G0X{x}Y{y}".format(x=self.extrema["X"][0],
+                                             y=self.extrema["Y"][0]))
+        elif corner == "ur":
+            gcode.append("G0X{x}Y{y}".format(x=self.extrema["X"][1],
+                                             y=self.extrema["Y"][0]))
+        elif corner == "dr":
+            gcode.append("G0X{x}Y{y}".format(x=self.extrema["X"][1],
+                                             y=self.extrema["Y"][1]))
+        elif corner == "dl":
+            gcode.append("G0X{x}Y{y}".format(x=self.extrema["X"][0],
+                                             y=self.extrema["Y"][1]))
+        elif corner == "c":
+            gcode.append("G0X{x}Y{y}".format(x=self.mids["X"],
+                                             y=self.mids["Y"]))
+        else:
+            gcode.append("G0X0Y0")
         return gcode
 
 

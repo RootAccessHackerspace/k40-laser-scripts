@@ -318,19 +318,12 @@ class MainWindow(Sender):
         else:
             self.gcodefile.bounding_box_coords()
         if self.serial:
-            if direction == "ul":
-                pass
-            if direction == "dl":
-                pass
-            if direction == "dr":
-                pass
-            if direction == "ur":
-                pass
-            if direction == "c":
-                pass
-            if direction == "box":
-                for command in self.gcodefile.box_gcode():
-                    self._send_gcode(command)
+            if "box" in direction:
+                commands = self.gcodefile.box_gcode()
+            else:
+                commands = self.gcodefile.corner_gcode(direction)
+            for line in commands:
+                self._send_gcode(line)
         else:
             messagebox.showerror("Device", "Please connect first")
 
