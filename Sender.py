@@ -145,15 +145,7 @@ class Sender(object):
         if self.running:
             logger.debug("self.running == True when _run_ended()")
             logger.info("Run ended")
-        logger.debug(("Run ended, pre", {"_pause": self._paused,
-                                         "running": self.running,
-                                        }
-                     ))
-        #self._pause = False
-        #self.running = False
-        logger.debug(("Run ended, post", {"_pause": self._paused,
-                                          "running": self.running,
-                                         }))
+            self.running = False
 
     def _soft_reset(self):
         """Send GRBL reset command"""
@@ -202,7 +194,7 @@ class Sender(object):
                                         "running": self.running
                                        }))
         #self._pause = False
-        #self.running = True
+        self.running = True
         logger.debug(("init_run, post", {"_pause": self._paused,
                                          "running": self.running
                                         }))
@@ -291,6 +283,9 @@ class Sender(object):
         elif "MSG" in message:
             recv_msg = message[1:-1]
             logger.info("Grbl %s", recv_msg)
+            msg_fields = recv_msg.split(":")
+            if "Pgm End" in msg_fields[1]:
+                self._run_ended()
         else:
             logger.error("Unexpected output: %s", message)
 
@@ -375,6 +370,7 @@ class Sender(object):
                 if done and line_count == gcode_count:
                     self.progress = 0.0
                     done = False
+                    line_count = 0
         logger.info("Closing down serial_io")
 
 
