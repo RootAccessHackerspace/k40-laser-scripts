@@ -289,7 +289,6 @@ class MainWindow(Sender):
         self.var["status"].set(msg)
         if self.error.qsize() > 0:
             response, code, message = self.error.get_nowait()
-            message = "{}\nSoft Reset and Unlock to continue".format(message)
             messagebox.showerror("{} {}".format(response, code),
                                  message)
         if isinstance(self.pos, tuple):
@@ -310,7 +309,7 @@ class MainWindow(Sender):
         logger.info("Lines to send: %d", len(self.file))
         self.max_size = float(len(self.file))
         for line in self.file:
-            if line is not None:
+            if line is not None and len(line) > 0:
                 logger.debug("Queued line: %s", line)
                 self.queue.put(line)
         self.queue.put(("DONE",))
