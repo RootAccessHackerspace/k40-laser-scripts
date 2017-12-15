@@ -98,23 +98,32 @@ class GcodeFile(object):
                     self.extrema["UL"], self.extrema["DR"])
         return (self.extrema["UL"], self.extrema["DR"])
 
-    def box_gcode(self):
-        """Return str G0 commands to bound gcode file"""
+    def box_gcode(self, trace=0, strength=0):
+        """Return str G0/1 commands to bound gcode file"""
         if (None, None) in self.extrema.values():
             self.bounding_box_coords()
         gcode = ["G90", "G21"]
+        if trace:
+            gcode.append("M4F5000S{s}".format(s=strength))
         logger.info("Using X/Y values of %s/%s",
                     self.extrema["X"], self.extrema["Y"])
-        gcode.append("G0X{x}Y{y}".format(x=self.extrema["UL"][0],
-                                         y=self.extrema["UL"][1]))
-        gcode.append("G0X{x}Y{y}".format(x=self.extrema["DR"][0],
-                                         y=self.extrema["UL"][1]))
-        gcode.append("G0X{x}Y{y}".format(x=self.extrema["DR"][0],
-                                         y=self.extrema["DR"][1]))
-        gcode.append("G0X{x}Y{y}".format(x=self.extrema["UL"][0],
-                                         y=self.extrema["DR"][1]))
-        gcode.append("G0X{x}Y{y}".format(x=self.extrema["UL"][0],
-                                         y=self.extrema["UL"][1]))
+        gcode.append("G{t}X{x}Y{y}".format(t=0, # To first coord w/o laser
+                                           x=self.extrema["UL"][0],
+                                           y=self.extrema["UL"][1]))
+        gcode.append("G{t}X{x}Y{y}".format(t=trace,
+                                           x=self.extrema["DR"][0],
+                                           y=self.extrema["UL"][1]))
+        gcode.append("G{t}X{x}Y{y}".format(t=trace,
+                                           x=self.extrema["DR"][0],
+                                           y=self.extrema["DR"][1]))
+        gcode.append("G{t}X{x}Y{y}".format(t=trace,
+                                           x=self.extrema["UL"][0],
+                                           y=self.extrema["DR"][1]))
+        gcode.append("G{t}X{x}Y{y}".format(t=trace,
+                                           x=self.extrema["UL"][0],
+                                           y=self.extrema["UL"][1]))
+        if trace:
+            gcode.append("M5S0")
         logger.debug("gcode: %s", gcode)
         return gcode
 

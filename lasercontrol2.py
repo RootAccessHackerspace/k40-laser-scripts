@@ -89,6 +89,7 @@ class MainWindow(Sender):
                          "pos_y",
                          "pos_z",
                          "progress_bar",
+                         "trace"
                         ]
         for var in variable_list:
             try:
@@ -129,6 +130,7 @@ class MainWindow(Sender):
                 self.objects[obj] = builder.get_object(obj)
             except BaseException:
                 logger.warning("Object not defined: %s", obj)
+        self.objects["spinbox_power_level"].set(15)
         # All done
         logger.info("Window started")
 
@@ -319,7 +321,9 @@ class MainWindow(Sender):
             self.gcodefile.bounding_box_coords()
         if self.serial:
             if "box" in direction:
-                commands = self.gcodefile.box_gcode()
+                power = float(self.objects["spinbox_power_level"].get()) / 100 * 500
+                commands = self.gcodefile.box_gcode(trace=self.var["trace"].get(),
+                                                    strength=power)
             else:
                 commands = self.gcodefile.corner_gcode(direction)
             for line in commands:

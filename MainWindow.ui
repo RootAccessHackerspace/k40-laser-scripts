@@ -369,7 +369,7 @@
                 <property name="height">200</property>
                 <property name="width">200</property>
                 <layout>
-                  <property name="column">4</property>
+                  <property name="column">5</property>
                   <property name="propagate">True</property>
                   <property name="row">0</property>
                 </layout>
@@ -419,6 +419,19 @@
                 <property name="command">_move_box</property>
                 <property name="state">disabled</property>
                 <property name="text" translatable="yes">Bounding box</property>
+                <layout>
+                  <property name="column">5</property>
+                  <property name="propagate">True</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Checkbutton" id="check_trace">
+                <property name="offvalue">0</property>
+                <property name="onvalue">1</property>
+                <property name="text" translatable="yes">Trace</property>
+                <property name="variable">int:trace</property>
                 <layout>
                   <property name="column">4</property>
                   <property name="propagate">True</property>
