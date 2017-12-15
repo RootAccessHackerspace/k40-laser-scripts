@@ -273,8 +273,8 @@ class Sender(object):
 
     def __process_messages(self, message):
         """Master message processing"""
-        if ("ALARM" or "ERROR") in message:
-            self.__parse_alarm(message)
+        if any(item in message.upper() for item in ["ALARM", "ERROR"]):
+            self.__parse_alarm(message.upper())
         elif message.find("<") == 0:
             logger.debug("Status message received: %s", message)
             status_msg = message[1:-1]
