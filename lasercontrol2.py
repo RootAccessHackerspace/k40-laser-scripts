@@ -287,7 +287,7 @@ class MainWindow(Sender):
     def _update_status(self):
         msg = self.log
         self.var["status"].set(msg)
-        if ("ALARM" or "ERROR") in msg:
+        if self.error.qsize() > 0:
             response, code, message = self.error.get_nowait()
             message = "{}\nSoft Reset and Unlock to continue".format(message)
             messagebox.showerror("{} {}".format(response, code),
