@@ -114,8 +114,6 @@ class Sender(object):
     def _stop_run(self):
         """Stop the current run of Gcode"""
         logger.debug("Called Sender._stop_run()")
-        logger.debug("Calling self._pause()")
-        self._pause()
         logger.info("Stopping run")
         #self._stop = True
         logger.debug("Purging Grbl")
@@ -127,10 +125,6 @@ class Sender(object):
     def _purge_grbl(self):
         """Purge the buffer of grbl"""
         logger.debug("Called Sender._purge_grbl()")
-        logger.debug("Sending control-code pause")
-        self.serial.write(b"!") # Immediately pause
-        self.serial.flush()
-        time.sleep(1)
         logger.debug("Calling self._soft_reset()")
         self._soft_reset()
         logger.debug("Calling self._unlock()")
@@ -146,6 +140,7 @@ class Sender(object):
             logger.debug("self.running == True when _run_ended()")
             logger.info("Run ended")
             self.running = False
+        self.progress = 0.0
 
     def _soft_reset(self):
         """Send GRBL reset command"""
@@ -158,11 +153,14 @@ class Sender(object):
         """Send GRBL unlock command"""
         logger.debug("Called Sender._unlock()")
         self._send_gcode("$X")
+        time.sleep(0.25)
+        self.serial.write(b"\n\n")
 
     def _home(self):
         """Send GRBL home command"""
         logger.debug("Called Sender._home()")
         self._send_gcode("$H")
+        self.progress = 0.0
 
     def _send_gcode(self, command):
         """Send GRBL a Gcode/command line"""
@@ -212,7 +210,7 @@ class Sender(object):
                                     }))
         if self.serial is None:
             return
-        if self._pause:
+        if self._paused:
             logger.debug("Calling self._resume() b/c _paused==True")
             self._resume()
         else:
@@ -247,7 +245,10 @@ class Sender(object):
 
     def __parse_alarm(self, alarm):
         """Logs alarm or error with its short message"""
-        msg, code = alarm.split(":")
+        try:
+            msg, code = alarm.split(":")
+        except ValueError:
+            logger.exception("Error on '%s'", alarm)
         code = int(code)
         if msg == "ALARM":
             short_msg, long_msg = ALARM_CODES[code]
@@ -265,9 +266,7 @@ class Sender(object):
 
     def __process_messages(self, message):
         """Master message processing"""
-        if any(item in message.upper() for item in ["ALARM", "ERROR"]):
-            self.__parse_alarm(message.upper())
-        elif message.find("<") == 0:
+        if message.find("<") == 0:
             logger.debug("Status message received: %s", message)
             status_msg = message[1:-1]
             status_fields = status_msg.split("|")
@@ -280,6 +279,8 @@ class Sender(object):
             for field in status_fields[1:]:
                 if "MPos:" in field:
                     self.__parse_position(field)
+        elif any(item in message.upper() for item in ["ALARM", "ERROR"]):
+            self.__parse_alarm(message.upper())
         elif "MSG" in message:
             recv_msg = message[1:-1]
             logger.info("Grbl %s", recv_msg)
