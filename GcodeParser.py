@@ -106,12 +106,12 @@ class GcodeFile(object):
                     self.extrema["X"], self.extrema["Y"])
         gcode.append("G0X{x}Y{y}".format(x=self.extrema["UL"][0],
                                          y=self.extrema["UL"][1]))
-        gcode.append("G0X{x}Y{y}".format(x=self.extrema["UL"][0],
-                                         y=self.extrema["DR"][1]))
-        gcode.append("G0X{x}Y{y}".format(x=self.extrema["DR"][0],
-                                         y=self.extrema["DR"][1]))
         gcode.append("G0X{x}Y{y}".format(x=self.extrema["DR"][0],
                                          y=self.extrema["UL"][1]))
+        gcode.append("G0X{x}Y{y}".format(x=self.extrema["DR"][0],
+                                         y=self.extrema["DR"][1]))
+        gcode.append("G0X{x}Y{y}".format(x=self.extrema["UL"][0],
+                                         y=self.extrema["DR"][1]))
         gcode.append("G0X{x}Y{y}".format(x=self.extrema["UL"][0],
                                          y=self.extrema["UL"][1]))
         logger.debug("gcode: %s", gcode)
