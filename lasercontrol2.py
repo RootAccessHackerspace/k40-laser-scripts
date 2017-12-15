@@ -119,6 +119,7 @@ class MainWindow(Sender):
                        "button_testfire",
                        "button_corners",
                        "button_00",
+                       "check_checkmode",
                       ]
         for button in button_list:
             try:

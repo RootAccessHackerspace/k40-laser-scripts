@@ -249,6 +249,10 @@ class Sender(object):
                                        "_pause": self._paused,
                                       }))
 
+    def _toggle_checkmode(self):
+        """Toggle the 'check gcode mode' of Grbl"""
+        self._send_gcode("$C")
+
     def __parse_alarm(self, alarm):
         """Logs alarm or error with its short message"""
         msg, code = alarm.split(":")
@@ -345,6 +349,9 @@ class Sender(object):
                             for field in status_fields[1:]:
                                 if "MPos:" in field:
                                     self.__parse_position(field)
+                        elif "MSG" in out_temp:
+                            recv_msg = out_temp[1:-1]
+                            logger.info("Grbl %s", recv_msg)
                         else:
                             logger.error("Unexpected output: %s", out_temp)
                 self.serial.write(line_block + "\n")
@@ -375,12 +382,14 @@ class Sender(object):
                         for field in status_fields[1:]:
                             if "MPos:" in field:
                                 self.__parse_position(field)
+                    elif "MSG" in out_temp:
+                        recv_msg = out_temp[1:-1]
+                        logger.info("Grbl %s", recv_msg)
                     else:
                         logger.error("Unexpected output: %s", out_temp)
                 if done and line_count == gcode_count:
                     self.progress = 0.0
                     done = False
-                          }))
         logger.info("Closing down serial_io")
 
 

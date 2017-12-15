@@ -180,6 +180,7 @@
         </child>
         <child>
           <object class="ttk.Label" id="label_psu">
+            <property name="font">TkFixedFont</property>
             <property name="textvariable">string:psu_label</property>
             <property name="width">3</property>
             <layout>
@@ -192,6 +193,7 @@
         </child>
         <child>
           <object class="ttk.Label" id="label_laser">
+            <property name="font">TkFixedFont</property>
             <property name="textvariable">string:laser_label</property>
             <property name="width">3</property>
             <layout>
@@ -267,6 +269,20 @@
           </object>
         </child>
         <child>
+          <object class="ttk.Checkbutton" id="check_checkmode">
+            <property name="command">_toggle_checkmode</property>
+            <property name="state">disabled</property>
+            <property name="text" translatable="yes">Check Mode</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="columnspan">2</property>
+              <property name="propagate">True</property>
+              <property name="row">1</property>
+              <property name="sticky">w</property>
+            </layout>
+          </object>
+        </child>
+        <child>
           <object class="ttk.Labelframe" id="frame_motion">
             <property name="height">200</property>
             <property name="text" translatable="yes">Motion</property>
@@ -275,7 +291,7 @@
               <property name="column">0</property>
               <property name="columnspan">3</property>
               <property name="propagate">True</property>
-              <property name="row">1</property>
+              <property name="row">2</property>
               <columns>
                 <column id="3">
                   <property name="minsize">0</property>
