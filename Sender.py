@@ -120,6 +120,8 @@ class Sender(object):
         self._purge_grbl()
         logger.debug("Clearing queue")
         self._empty_queue()
+        self.progress = 0.0
+        self.max_size = 0.0
         logger.info("Run Stopped")
 
     def _purge_grbl(self):
@@ -155,12 +157,15 @@ class Sender(object):
         self._send_gcode("$X")
         time.sleep(0.25)
         self.serial.write(b"\n\n")
+        self.progress = 0.0
+        self.max_size = 0.0
 
     def _home(self):
         """Send GRBL home command"""
         logger.debug("Called Sender._home()")
         self._send_gcode("$H")
         self.progress = 0.0
+        self.max_size = 0.0
 
     def _send_gcode(self, command):
         """Send GRBL a Gcode/command line"""
@@ -199,6 +204,7 @@ class Sender(object):
         logger.debug("Calling self._empty_queue()")
         self._empty_queue()
         logger.info("Initializing run")
+        self.max_size = 0.0
         self.progress = 0.0
         time.sleep(1) # Give everything a bit of time
 
@@ -368,7 +374,8 @@ class Sender(object):
                             logger.debug("char_line already empty")
                     else:
                         self.__process_messages(out_temp)
-                if done and line_count == gcode_count:
+                if done and (line_count == gcode_count or not self.running):
+                    self.max_size = 0.0
                     self.progress = 0.0
                     done = False
                     line_count = 0
