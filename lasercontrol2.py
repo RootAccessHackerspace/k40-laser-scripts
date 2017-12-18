@@ -370,22 +370,22 @@ class MainWindow(Sender):
     def _jog_u(self):
         sped = float(self.objects["speed_box"].get())
         dist = float(self.objects["dist_box"].get())
-        self.jog(x=-dist, speed=sped)
+        self.jog(y=-dist, speed=sped)
 
     def _jog_r(self):
         sped = float(self.objects["speed_box"].get())
         dist = float(self.objects["dist_box"].get())
-        self.jog(y=dist, speed=sped)
+        self.jog(x=dist, speed=sped)
 
     def _jog_d(self):
         sped = float(self.objects["speed_box"].get())
         dist = float(self.objects["dist_box"].get())
-        self.jog(x=dist, speed=sped)
+        self.jog(y=dist, speed=sped)
 
     def _jog_l(self):
         sped = float(self.objects["speed_box"].get())
         dist = float(self.objects["dist_box"].get())
-        self.jog(y=-dist, speed=sped)
+        self.jog(x=-dist, speed=sped)
 
     def _test_fire(self):
         percent = int(self.objects["spinbox_power_level"].get())
