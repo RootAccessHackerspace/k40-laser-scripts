@@ -628,6 +628,18 @@
                 </layout>
               </object>
             </child>
+            <child>
+              <object class="ttk.Button" id="jog_cancel">
+                <property name="command">jog_cancel</property>
+                <property name="image">button_jog_cancel.gif</property>
+                <property name="state">disabled</property>
+                <layout>
+                  <property name="column">1</property>
+                  <property name="propagate">True</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
           </object>
         </child>
         <child>

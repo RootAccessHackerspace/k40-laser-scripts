@@ -128,6 +128,7 @@ class MainWindow(Sender):
                        "jog_ur",
                        "jog_dl",
                        "jog_dr",
+                       "jog_cancel",
                       ]
         for button in button_list:
             try:

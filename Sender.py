@@ -148,8 +148,8 @@ class Sender(object):
         """Send GRBL reset command"""
         logger.debug("Called Sender._soft_reset()")
         if self.serial:
-            self.serial.write(b"\030")
-            logger.debug("Sent b'\030'")
+            self.serial.write(b"\x18")
+            logger.debug("Sent b'\x18'")
 
     def _unlock(self):
         """Send GRBL unlock command"""
@@ -176,6 +176,11 @@ class Sender(object):
         jog_cmd = "".join(jog_list)
         logger.info("Jogging X%s Y%s @ F%s", x, y, speed)
         self._send_gcode(jog_cmd)
+
+    def jog_cancel(self):
+        """Cancel jog command"""
+        logger.info("Cancelling jog")
+        self.serial.write(b"\x85")
 
     def _send_gcode(self, command):
         """Send GRBL a Gcode/command line"""
