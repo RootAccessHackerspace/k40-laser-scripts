@@ -124,6 +124,10 @@ class MainWindow(Sender):
                        "jog_r",
                        "jog_d",
                        "jog_l",
+                       "jog_ul",
+                       "jog_ur",
+                       "jog_dl",
+                       "jog_dr",
                       ]
         for button in button_list:
             try:
@@ -391,6 +395,26 @@ class MainWindow(Sender):
         sped = float(self.objects["speed_box"].get())
         dist = float(self.objects["dist_box"].get())
         self.jog(x=-dist, speed=sped)
+
+    def _jog_ul(self):
+        sped = float(self.objects["speed_box"].get())
+        dist = float(self.objects["dist_box"].get())
+        self.jog(x=-dist, y=-dist, speed=sped)
+
+    def _jog_ur(self):
+        sped = float(self.objects["speed_box"].get())
+        dist = float(self.objects["dist_box"].get())
+        self.jog(x=dist, y=-dist, speed=sped)
+
+    def _jog_dr(self):
+        sped = float(self.objects["speed_box"].get())
+        dist = float(self.objects["dist_box"].get())
+        self.jog(x=dist, y=dist, speed=sped)
+
+    def _jog_dl(self):
+        sped = float(self.objects["speed_box"].get())
+        dist = float(self.objects["dist_box"].get())
+        self.jog(x=-dist, y=dist, speed=sped)
 
     def _test_fire(self):
         percent = int(self.objects["spinbox_power_level"].get())

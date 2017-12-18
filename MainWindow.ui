@@ -577,6 +577,54 @@
                 </layout>
               </object>
             </child>
+            <child>
+              <object class="ttk.Button" id="jog_ul">
+                <property name="command">_jog_ul</property>
+                <property name="image">button_jog_ul.gif</property>
+                <property name="state">disabled</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Button" id="jog_ur">
+                <property name="command">_jog_ur</property>
+                <property name="image">button_jog_ur.gif</property>
+                <property name="state">disabled</property>
+                <layout>
+                  <property name="column">2</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Button" id="jog_dr">
+                <property name="command">_jog_dr</property>
+                <property name="image">button_jog_dr.gif</property>
+                <property name="state">disabled</property>
+                <layout>
+                  <property name="column">2</property>
+                  <property name="propagate">True</property>
+                  <property name="row">2</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Button" id="jog_dl">
+                <property name="command">_jog_dl</property>
+                <property name="image">button_jog_dl.gif</property>
+                <property name="state">disabled</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="propagate">True</property>
+                  <property name="row">2</property>
+                </layout>
+              </object>
+            </child>
           </object>
         </child>
         <child>
