@@ -141,6 +141,8 @@ class MainWindow(Sender):
             except BaseException:
                 logger.warning("Object not defined: %s", obj)
         self.objects["spinbox_power_level"].set(15)
+        self.objects["dist_box"].set(10)
+        self.objects["speed_box"].set(5000)
         # All done
         logger.info("Window started")
 
