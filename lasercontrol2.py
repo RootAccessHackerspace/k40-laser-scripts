@@ -91,6 +91,9 @@ class MainWindow(Sender):
                          "pos_z",
                          "progress_bar",
                          "trace",
+                         "wpos_x",
+                         "wpos_y",
+                         "wpos_z",
                         ]
         for var in variable_list:
             try:

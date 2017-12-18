@@ -120,6 +120,7 @@
         <property name="width">200</property>
         <layout>
           <property name="column">1</property>
+          <property name="ipadx">10</property>
           <property name="propagate">True</property>
           <property name="row">0</property>
           <property name="rowspan">2</property>
@@ -769,6 +770,26 @@
           <property name="sticky">nw</property>
         </layout>
         <child>
+          <object class="ttk.Label" id="label_mpos">
+            <property name="text" translatable="yes">MPos</property>
+            <layout>
+              <property name="column">1</property>
+              <property name="propagate">True</property>
+              <property name="row">0</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Label" id="label_wpos">
+            <property name="text" translatable="yes">WPos</property>
+            <layout>
+              <property name="column">3</property>
+              <property name="propagate">True</property>
+              <property name="row">0</property>
+            </layout>
+          </object>
+        </child>
+        <child>
           <object class="tk.Label" id="label_x">
             <property name="justify">right</property>
             <property name="padx">0</property>
@@ -776,7 +797,7 @@
             <layout>
               <property name="column">0</property>
               <property name="propagate">True</property>
-              <property name="row">0</property>
+              <property name="row">1</property>
               <property name="sticky">e</property>
             </layout>
           </object>
@@ -789,7 +810,7 @@
             <layout>
               <property name="column">0</property>
               <property name="propagate">True</property>
-              <property name="row">1</property>
+              <property name="row">2</property>
               <property name="sticky">e</property>
             </layout>
           </object>
@@ -802,7 +823,7 @@
             <layout>
               <property name="column">0</property>
               <property name="propagate">True</property>
-              <property name="row">2</property>
+              <property name="row">3</property>
               <property name="sticky">e</property>
             </layout>
           </object>
@@ -813,11 +834,11 @@
             <property name="justify">left</property>
             <property name="relief">sunken</property>
             <property name="textvariable">double:pos_x</property>
-            <property name="width">8</property>
+            <property name="width">7</property>
             <layout>
               <property name="column">1</property>
               <property name="propagate">True</property>
-              <property name="row">0</property>
+              <property name="row">1</property>
               <property name="sticky">w</property>
             </layout>
           </object>
@@ -828,11 +849,11 @@
             <property name="justify">left</property>
             <property name="relief">sunken</property>
             <property name="textvariable">double:pos_y</property>
-            <property name="width">8</property>
+            <property name="width">7</property>
             <layout>
               <property name="column">1</property>
               <property name="propagate">True</property>
-              <property name="row">1</property>
+              <property name="row">2</property>
               <property name="sticky">w</property>
             </layout>
           </object>
@@ -843,26 +864,63 @@
             <property name="justify">left</property>
             <property name="relief">sunken</property>
             <property name="textvariable">double:pos_z</property>
-            <property name="width">8</property>
+            <property name="width">7</property>
             <layout>
               <property name="column">1</property>
               <property name="propagate">True</property>
-              <property name="row">2</property>
+              <property name="row">3</property>
               <property name="sticky">w</property>
             </layout>
           </object>
         </child>
         <child>
-          <object class="ttk.Progressbar" id="progress_running">
-            <property name="maximum">1</property>
-            <property name="mode">determinate</property>
-            <property name="orient">horizontal</property>
-            <property name="variable">double:progress_bar</property>
+          <object class="ttk.Label" id="label_wpos_x">
+            <property name="anchor">w</property>
+            <property name="relief">sunken</property>
+            <property name="textvariable">double:wpos_x</property>
+            <property name="width">7</property>
             <layout>
-              <property name="column">1</property>
-              <property name="columnspan">2</property>
+              <property name="column">3</property>
+              <property name="propagate">True</property>
+              <property name="row">1</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Label" id="label_wpos_y">
+            <property name="anchor">w</property>
+            <property name="relief">sunken</property>
+            <property name="textvariable">double:wpos_y</property>
+            <property name="width">7</property>
+            <layout>
+              <property name="column">3</property>
+              <property name="propagate">True</property>
+              <property name="row">2</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Label" id="label_wpos_z">
+            <property name="anchor">w</property>
+            <property name="relief">sunken</property>
+            <property name="textvariable">double:wpos_z</property>
+            <property name="width">7</property>
+            <layout>
+              <property name="column">3</property>
               <property name="propagate">True</property>
               <property name="row">3</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Separator" id="sep">
+            <property name="orient">vertical</property>
+            <layout>
+              <property name="column">2</property>
+              <property name="ipady">30</property>
+              <property name="propagate">True</property>
+              <property name="row">1</property>
+              <property name="rowspan">3</property>
             </layout>
           </object>
         </child>
