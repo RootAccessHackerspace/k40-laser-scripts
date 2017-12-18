@@ -120,6 +120,10 @@ class MainWindow(Sender):
                        "button_corners",
                        "button_00",
                        "check_checkmode",
+                       "jog_u",
+                       "jog_r",
+                       "jog_d",
+                       "jog_l",
                       ]
         for button in button_list:
             try:
@@ -128,6 +132,8 @@ class MainWindow(Sender):
                 logger.warning("Button not defined: %s", button)
         self.objects = {}
         other_objects = ["spinbox_power_level",
+                         "dist_box",
+                         "speed_box",
                         ]
         for obj in other_objects:
             try:
@@ -360,6 +366,26 @@ class MainWindow(Sender):
             self._move(corner)
             self._test_fire()
         self._move("00")
+
+    def _jog_u(self):
+        sped = float(self.objects["speed_box"].get())
+        dist = float(self.objects["dist_box"].get())
+        self.jog(x=-dist, speed=sped)
+
+    def _jog_r(self):
+        sped = float(self.objects["speed_box"].get())
+        dist = float(self.objects["dist_box"].get())
+        self.jog(y=dist, speed=sped)
+
+    def _jog_d(self):
+        sped = float(self.objects["speed_box"].get())
+        dist = float(self.objects["dist_box"].get())
+        self.jog(x=dist, speed=sped)
+
+    def _jog_l(self):
+        sped = float(self.objects["speed_box"].get())
+        dist = float(self.objects["dist_box"].get())
+        self.jog(y=-dist, speed=sped)
 
     def _test_fire(self):
         percent = int(self.objects["spinbox_power_level"].get())

@@ -167,6 +167,16 @@ class Sender(object):
         self.progress = 0.0
         self.max_size = 0.0
 
+    def jog(self, x=0, y=0, speed=5000):
+        """Send a jog command to Grbl"""
+        jog_list = ["$J=", "G21", "G91"]
+        jog_list.append("X{}".format(x))
+        jog_list.append("Y{}".format(y))
+        jog_list.append("F{}".format(speed))
+        jog_cmd = "".join(jog_list)
+        logger.info("Jogging X%s Y%s @ F%s", x, y, speed)
+        self._send_gcode(jog_cmd)
+
     def _send_gcode(self, command):
         """Send GRBL a Gcode/command line"""
         logger.debug("Called Sender._send_gcode() with %s", command)
