@@ -325,16 +325,19 @@ class MainWindow(Sender):
     def _move(self, direction="origin"):
         """Send appropriate Gcode to move the laser according to direction"""
         logger.info("Moving %s", direction)
-        if not self.file:
-            messagebox.showerror("File", "File must be loaded first")
-            return
-        else:
-            self.gcodefile.bounding_box_coords()
+        if direction != "origin":
+            if not self.file:
+                messagebox.showerror("File", "File must be loaded first")
+                return
+            else:
+                self.gcodefile.bounding_box_coords()
         if self.serial:
             if "box" in direction:
                 power = float(self.objects["spinbox_power_level"].get()) / 100 * 500
                 commands = self.gcodefile.box_gcode(trace=self.var["trace"].get(),
                                                     strength=power)
+            elif "origin" in direction:
+                commands = ["G21", "G90", "G0X0Y0"]
             else:
                 commands = self.gcodefile.corner_gcode(direction)
             for line in commands:
