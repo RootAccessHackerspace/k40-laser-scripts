@@ -511,7 +511,7 @@
           <object class="ttk.Button" id="button_00">
             <property name="command">_move</property>
             <property name="state">disabled</property>
-            <property name="text" translatable="yes">X0, Y0</property>
+            <property name="text" translatable="yes">X0 Y0</property>
             <layout>
               <property name="column">0</property>
               <property name="propagate">True</property>
