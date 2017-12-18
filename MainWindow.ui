@@ -443,6 +443,7 @@
                         <property name="command">_test_fire</property>
                         <property name="state">disabled</property>
                         <property name="text" translatable="yes">Test fire</property>
+                        <property name="width">11</property>
                         <layout>
                           <property name="column">0</property>
                           <property name="columnspan">3</property>
@@ -458,6 +459,7 @@
                     <property name="command">_move_box</property>
                     <property name="state">disabled</property>
                     <property name="text" translatable="yes">Bounding box</property>
+                    <property name="width">11</property>
                     <layout>
                       <property name="column">5</property>
                       <property name="propagate">True</property>
@@ -483,6 +485,7 @@
                     <property name="command">_move_mc</property>
                     <property name="state">disabled</property>
                     <property name="text" translatable="yes">Mark corners</property>
+                    <property name="width">11</property>
                     <layout>
                       <property name="column">5</property>
                       <property name="propagate">True</property>
