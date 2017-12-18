@@ -231,7 +231,7 @@
           <object class="ttk.Button" id="button_start">
             <property name="command">_run</property>
             <property name="compound">top</property>
-            <property name="image">button_play.gif</property>
+            <property name="image">play.gif</property>
             <property name="state">disabled</property>
             <property name="text" translatable="yes">Start</property>
             <layout>
@@ -245,7 +245,7 @@
           <object class="ttk.Button" id="button_pause">
             <property name="command">_pause</property>
             <property name="compound">top</property>
-            <property name="image">button_pause.gif</property>
+            <property name="image">pause.gif</property>
             <property name="state">disabled</property>
             <property name="text" translatable="yes">Pause</property>
             <layout>
@@ -259,7 +259,7 @@
           <object class="ttk.Button" id="button_stop">
             <property name="command">_stop_run</property>
             <property name="compound">top</property>
-            <property name="image">button_stop.gif</property>
+            <property name="image">stop.gif</property>
             <property name="state">disabled</property>
             <property name="text" translatable="yes">Stop</property>
             <layout>
@@ -317,9 +317,8 @@
                 <child>
                   <object class="ttk.Button" id="move_ul">
                     <property name="command">_move_ul</property>
-                    <property name="image">button_ul.gif</property>
+                    <property name="image">corner_ul.gif</property>
                     <property name="state">disabled</property>
-                    <property name="text" translatable="yes">Button_1</property>
                     <layout>
                       <property name="column">0</property>
                       <property name="propagate">True</property>
@@ -330,9 +329,8 @@
                 <child>
                   <object class="ttk.Button" id="move_ur">
                     <property name="command">_move_ur</property>
-                    <property name="image">button_ur.gif</property>
+                    <property name="image">corner_ur.gif</property>
                     <property name="state">disabled</property>
-                    <property name="text" translatable="yes">Button_2</property>
                     <layout>
                       <property name="column">2</property>
                       <property name="propagate">True</property>
@@ -343,9 +341,8 @@
                 <child>
                   <object class="ttk.Button" id="move_c">
                     <property name="command">_move_c</property>
-                    <property name="image">button_c.gif</property>
+                    <property name="image">corner_c.gif</property>
                     <property name="state">disabled</property>
-                    <property name="text" translatable="yes">Button_3</property>
                     <layout>
                       <property name="column">1</property>
                       <property name="propagate">True</property>
@@ -356,9 +353,8 @@
                 <child>
                   <object class="ttk.Button" id="move_dl">
                     <property name="command">_move_dl</property>
-                    <property name="image">button_dl.gif</property>
+                    <property name="image">corner_dl.gif</property>
                     <property name="state">disabled</property>
-                    <property name="text" translatable="yes">Button_4</property>
                     <layout>
                       <property name="column">0</property>
                       <property name="propagate">True</property>
@@ -369,9 +365,8 @@
                 <child>
                   <object class="ttk.Button" id="move_dr">
                     <property name="command">_move_dr</property>
-                    <property name="image">button_dr.gif</property>
+                    <property name="image">corner_dr.gif</property>
                     <property name="state">disabled</property>
-                    <property name="text" translatable="yes">Button_5</property>
                     <layout>
                       <property name="column">2</property>
                       <property name="propagate">True</property>
@@ -535,7 +530,7 @@
             <child>
               <object class="ttk.Button" id="jog_u">
                 <property name="command">_jog_u</property>
-                <property name="image">button_jog_u.gif</property>
+                <property name="image">jog_u.gif</property>
                 <property name="state">disabled</property>
                 <layout>
                   <property name="column">1</property>
@@ -547,7 +542,7 @@
             <child>
               <object class="ttk.Button" id="jog_r">
                 <property name="command">_jog_r</property>
-                <property name="image">button_jog_r.gif</property>
+                <property name="image">jog_r.gif</property>
                 <property name="state">disabled</property>
                 <layout>
                   <property name="column">2</property>
@@ -559,7 +554,7 @@
             <child>
               <object class="ttk.Button" id="jog_d">
                 <property name="command">_jog_d</property>
-                <property name="image">button_jog_d.gif</property>
+                <property name="image">jog_d.gif</property>
                 <property name="state">disabled</property>
                 <layout>
                   <property name="column">1</property>
@@ -571,7 +566,7 @@
             <child>
               <object class="ttk.Button" id="jog_l">
                 <property name="command">_jog_l</property>
-                <property name="image">button_jog_l.gif</property>
+                <property name="image">jog_l.gif</property>
                 <property name="state">disabled</property>
                 <layout>
                   <property name="column">0</property>
@@ -583,7 +578,7 @@
             <child>
               <object class="ttk.Button" id="jog_ul">
                 <property name="command">_jog_ul</property>
-                <property name="image">button_jog_ul.gif</property>
+                <property name="image">jog_ul.gif</property>
                 <property name="state">disabled</property>
                 <layout>
                   <property name="column">0</property>
@@ -595,7 +590,7 @@
             <child>
               <object class="ttk.Button" id="jog_ur">
                 <property name="command">_jog_ur</property>
-                <property name="image">button_jog_ur.gif</property>
+                <property name="image">jog_ur.gif</property>
                 <property name="state">disabled</property>
                 <layout>
                   <property name="column">2</property>
@@ -607,7 +602,7 @@
             <child>
               <object class="ttk.Button" id="jog_dr">
                 <property name="command">_jog_dr</property>
-                <property name="image">button_jog_dr.gif</property>
+                <property name="image">jog_dr.gif</property>
                 <property name="state">disabled</property>
                 <layout>
                   <property name="column">2</property>
@@ -619,7 +614,7 @@
             <child>
               <object class="ttk.Button" id="jog_dl">
                 <property name="command">_jog_dl</property>
-                <property name="image">button_jog_dl.gif</property>
+                <property name="image">jog_dl.gif</property>
                 <property name="state">disabled</property>
                 <layout>
                   <property name="column">0</property>
@@ -631,7 +626,7 @@
             <child>
               <object class="ttk.Button" id="jog_cancel">
                 <property name="command">jog_cancel</property>
-                <property name="image">button_jog_cancel.gif</property>
+                <property name="image">jog_cancel.gif</property>
                 <property name="state">disabled</property>
                 <layout>
                   <property name="column">1</property>
