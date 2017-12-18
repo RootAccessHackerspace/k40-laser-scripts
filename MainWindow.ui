@@ -515,7 +515,6 @@
               <property name="column">0</property>
               <property name="propagate">True</property>
               <property name="row">0</property>
-              <property name="sticky">w</property>
             </layout>
           </object>
         </child>
