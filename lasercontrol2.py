@@ -89,11 +89,11 @@ class MainWindow(Sender):
                          "pos_x",
                          "pos_y",
                          "pos_z",
-                         "progress_bar",
                          "trace",
                          "wpos_x",
                          "wpos_y",
                          "wpos_z",
+                         "percent_done",
                         ]
         for var in variable_list:
             try:
@@ -311,7 +311,8 @@ class MainWindow(Sender):
             self.var["pos_x"].set(self.pos[0])
             self.var["pos_y"].set(self.pos[1])
             self.var["pos_z"].set(self.pos[2])
-        self.var["progress_bar"].set(self.progress)
+        if self.max_size != 0:
+            self.var["percent_done"].set(self.progress*100.0)
         self.mainwindow.after(250, self._update_status)
 
     def _run(self):

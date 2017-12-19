@@ -285,6 +285,53 @@
           </object>
         </child>
         <child>
+          <object class="ttk.Frame" id="frame_percentdone">
+            <property name="height">200</property>
+            <property name="width">200</property>
+            <layout>
+              <property name="column">1</property>
+              <property name="columnspan">2</property>
+              <property name="propagate">True</property>
+              <property name="row">1</property>
+              <property name="sticky">e</property>
+            </layout>
+            <child>
+              <object class="ttk.Label" id="label_percentdone">
+                <property name="text" translatable="yes">Done:</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Label" id="label_pdone">
+                <property name="justify">right</property>
+                <property name="textvariable">double:percent_done</property>
+                <property name="width">8</property>
+                <layout>
+                  <property name="column">1</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                  <property name="sticky">e</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Label" id="label_p">
+                <property name="text" translatable="yes">%</property>
+                <layout>
+                  <property name="column">2</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                  <property name="sticky">w</property>
+                </layout>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
           <object class="ttk.Labelframe" id="frame_motion">
             <property name="height">200</property>
             <property name="text" translatable="yes">Motion</property>
