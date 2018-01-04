@@ -15,47 +15,40 @@ __email__ = "d.armitage89@gmail.com"
 __license__ = "MIT"
 
 ####---- Imports ----####
-from subprocess import check_output
-
 import sys
 import os
 import signal
-import pwd
-import time
-import random
-import crypt
-import ttk
 import logging
 import logging.config
+import coloredlogs
 
-from threading import Thread, enumerate as thread_enum, active_count
+from threading import enumerate as thread_enum, active_count
 import yaml
 
-from inotify.adapters import Inotify
-from inotify.constants import IN_CLOSE_WRITE
-
 from Sender import Sender
+from NFCcontrol import initialize_nfc_reader, get_uid_noblock, verify_uid
+from NFCcontrol import get_user_uid, get_user_realname, is_current_user
+from GPIOcontrol import gpio_setup, disable_relay, relay_state
+from GPIOcontrol import switch_pin, toggle_pin
+from GcodeParser import GcodeFile
+# Variable imports
+from GPIOcontrol import OUT_PINS
 
 try:
-    import Tkinter as tk
     import tkMessageBox as messagebox
     import tkFileDialog as filedialog
 except ImportError:
-    import tkinter as tk
     import tkinter.messagebox as messagebox
     import tkinter.filedialog as filedialog
-import wiringpi as GPIO
+import pygubu
 
 
 ####---- Variables ----####
+CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
 # BCM pins for various functions
 ## SPI
 ### For reference, should we ever go back to using a python SPI protocol
 #SPI = dict(cs=8, mosi=10, miso=9, sclk=11)
-## Relays and other outputs
-OUT_PINS = dict(laser=20, psu=21, grbl=27)
-## Sensors and other inputs
-IN_PINS = dict() # None currently
 
 # Directory where the gcode files will be stored from Visicut
 GDIR = "/home/users/Public"
@@ -71,157 +64,95 @@ GRBL_SERIAL = "/dev/ttyAMA0"
 
 
 ####---- Classes ----####
-class MainWindow(tk.Frame, Sender):
+class MainWindow(Sender):
     """Main window"""
-    # pylint: disable=too-many-ancestors,too-many-instance-attributes
-    def __init__(self, root, *args, **kwargs):
-        ## Main window
-        tk.Frame.__init__(self, root, *args, **kwargs)
+    # pylint: disable=too-many-ancestors,too-many-instance-attributes,too-few-public-methods
+    def __init__(self):
+        ## Sender methods
         Sender.__init__(self)
-        self.root = root
-        self.root.geometry("400x300+0-5")
-        self.root.resizable(width=False, height=False)
-        self.root.protocol("WM_DELETE_WINDOW", self.__shutdown)
-        self.grid()
-
-        ## Sub-frame for just the GPIO controls
-        self.gpio = ttk.Labelframe(self.root,
-                                   text="GPIO Control",
-                                   padding=5)
-        self.gpio.grid(column=20, row=50, sticky="E", ipadx=5)
-        ## Sub-frame for the GCode controls
-        self.gcode = ttk.Labelframe(self.root,
-                                    text="Gcode Control")
-        self.gcode.grid(column=10, row=50, sticky="W", ipadx=5)
-        ## Sub-frame for "status" controls
-        self.conn = ttk.Frame(self.root)
-        self.conn.grid(column=10, row=25, sticky="N")
-        ## Sub-frame for Gcode file loading
-        self.load = ttk.Labelframe(self.root, text="File")
-        self.load.grid(column=10, row=100, sticky="W")
-        ### GPIO buttons
-        self.gpio.button_auth = ttk.Button(self.gpio, text="Authorize")
-        self.gpio.button_psu = ttk.Button(self.gpio, text="Power Supply")
-        self.gpio.button_laser = ttk.Button(self.gpio, text="Laser")
-        self.gpio.button_reset_hard = ttk.Button(self.gpio,
-                                                 text="Hard Reset")
-        #### Label for the state of the laser and PSU
-        self.gpio.psu_label = tk.StringVar()
-        self.gpio.label_psu = tk.Label(self.gpio,
-                                       textvariable=self.gpio.psu_label)
-        self.gpio.laser_label = tk.StringVar()
-        self.gpio.label_laser = tk.Label(self.gpio,
-                                         textvariable=self.gpio.laser_label)
-        ### GCODE buttons
-        self.gcode.image_play = tk.PhotoImage(file="button_play.gif")
-        self.gcode.button_start = ttk.Button(self.gcode,
-                                             text="Start",
-                                             image=self.gcode.image_play,
-                                             compound="top",
-                                             command=lambda: self.run(self.gcode.file) #pylint: disable=line-too-long
-                                            )
-        self.gcode.image_pause = tk.PhotoImage(file="button_pause.gif")
-        self.gcode.button_pause = ttk.Button(self.gcode,
-                                             text="Pause",
-                                             image=self.gcode.image_pause,
-                                             compound="top",
-                                             command=self.pause,
-                                            )
-        self.gcode.image_stop = tk.PhotoImage(file="button_stop.gif")
-        self.gcode.button_stop = ttk.Button(self.gcode,
-                                            text="Stop",
-                                            image=self.gcode.image_stop,
-                                            compound="top",
-                                            command=self.stop_run,
-                                           )
-        self.gcode.file = None
-        self.file_scan_thread = None
-        ### Connection/Status buttons and label
-        self.conn.label_status = tk.Label(self.conn, text="Status:")
-        self.conn.status = tk.StringVar()
-        self.conn.status_display = tk.Label(self.conn,
-                                            textvariable=self.conn.status)
-        self.conn.connect_b = tk.StringVar()
-        self.conn.button_conn = ttk.Button(self.conn,
-                                           textvariable=self.conn.connect_b)
-        self.conn.button_home = ttk.Button(self.conn,
-                                           text="Home")
-        self.conn.button_reset_soft = ttk.Button(self.conn,
-                                                 text="Soft Reset")
-        self.conn.button_unlock = ttk.Button(self.conn,
-                                             text="Unlock")
-        ### Gcode file buttons and label
-        self.load.button_open = ttk.Button(self.load, text="Open")
-        self.load.filename = tk.StringVar()
-        self.load.label_file = tk.Label(self.load,
-                                        textvariable=self.load.filename)
-
-        self.__init_window()
-
-    def __init_window(self):
-        """Initialization of the GUI"""
-        self.root.title("Laser Control")
-        self.__create_buttons()
+        ## Main window
+        self.builder = builder = pygubu.Builder()
+        builder.add_from_file(os.path.join(CURRENT_DIR, "MainWindow.ui"))
+        self.mainwindow = builder.get_object("mainwindow")
+        self.mainwindow.protocol("WM_DELETE_WINDOW", self.__shutdown)
+        builder.connect_callbacks(self)
+        ## Variables & Buttons
+        self.file = []
+        self.gcodefile = None
+        self.var = {}
+        variable_list = ["status",
+                         "connect_b",
+                         "psu_label",
+                         "laser_label",
+                         "filename",
+                         "file_found",
+                         "pos_x",
+                         "pos_y",
+                         "pos_z",
+                         "trace",
+                         "wpos_x",
+                         "wpos_y",
+                         "wpos_z",
+                         "percent_done",
+                        ]
+        for var in variable_list:
+            try:
+                self.var[var] = builder.get_variable(var)
+            except BaseException:
+                logger.warning("Variable not defined: %s", var)
+        self.var["status"].set("Not Authorized")
+        self.var["connect_b"].set("Connect")
+        self.buttons = {}
+        button_list = ["button_conn",
+                       "button_home",
+                       "button_soft_reset",
+                       "button_unlock",
+                       "button_reset_hard",
+                       "check_psu",
+                       "check_laser",
+                       "button_start",
+                       "button_pause",
+                       "button_stop",
+                       "move_ul",
+                       "move_ur",
+                       "move_dr",
+                       "move_dl",
+                       "move_c",
+                       "button_box",
+                       "button_testfire",
+                       "button_corners",
+                       "button_00",
+                       "check_checkmode",
+                       "jog_u",
+                       "jog_r",
+                       "jog_d",
+                       "jog_l",
+                       "jog_ul",
+                       "jog_ur",
+                       "jog_dl",
+                       "jog_dr",
+                       "jog_cancel",
+                      ]
+        for button in button_list:
+            try:
+                self.buttons[button] = builder.get_object(button)
+            except BaseException:
+                logger.warning("Button not defined: %s", button)
+        self.objects = {}
+        other_objects = ["spinbox_power_level",
+                         "dist_box",
+                         "speed_box",
+                        ]
+        for obj in other_objects:
+            try:
+                self.objects[obj] = builder.get_object(obj)
+            except BaseException:
+                logger.warning("Object not defined: %s", obj)
+        self.objects["spinbox_power_level"].set(15)
+        self.objects["dist_box"].set(10)
+        self.objects["speed_box"].set(5000)
+        # All done
         logger.info("Window started")
-
-    def __create_buttons(self):
-        """Make all buttons visible and set appropriate values"""
-        # GPIO buttons
-        self.gpio.button_auth.grid(row=10, column=10, sticky="W")
-        self.gpio.button_auth.configure(command=self._authorize)
-
-        self.gpio.button_psu.grid(row=20, column=10, sticky="W")
-        self.gpio.button_psu.configure(command=(
-            lambda: self._switch_pin('psu')))
-        self.gpio.button_psu.state(["disabled"])
-        self.gpio.label_psu.grid(row=20, column=20, sticky="W")
-
-        self.gpio.button_laser.grid(row=30, column=10, sticky="W")
-        self.gpio.button_laser.configure(command=(
-            lambda: self._switch_pin('laser')))
-        self.gpio.button_laser.state(["disabled"])
-        self.gpio.label_laser.grid(row=30, column=20, sticky="W")
-
-        self.gpio.button_reset_hard.grid(row=40, column=10, sticky="W")
-        self.gpio.button_reset_hard.configure(command=(
-            lambda: toggle_pin(OUT_PINS['grbl'])))
-        self.gpio.button_reset_hard.state(["disabled"])
-
-        # Gcode buttons
-        self.gcode.button_start.grid(column=10, row=10)
-        self.gcode.button_start.state(["disabled"])
-        self.gcode.button_pause.grid(column=20, row=10)
-        self.gcode.button_pause.state(["disabled"])
-        self.gcode.button_stop.grid(column=30, row=10)
-        self.gcode.button_stop.state(["disabled"])
-
-        # Connection buttons
-        self.conn.label_status.grid(column=30, row=5)
-        self.conn.status_display.grid(column=31, row=5, columnspan=19)
-        self.conn.status.set("Not Connected")
-        self.conn.connect_b.set("Connect")
-        self.conn.button_conn.configure(command=lambda: self.open(GRBL_SERIAL))
-        self.conn.button_conn.grid(column=20, row=5)
-        self.conn.button_conn.state(["disabled"])
-        self.conn.button_home.grid(column=20, row=10)
-        self.conn.button_home.state(["disabled"])
-        self.conn.button_reset_soft.grid(column=30, row=10)
-        self.conn.button_reset_soft.state(["disabled"])
-        self.conn.button_unlock.grid(column=40, row=10)
-        self.conn.button_unlock.state(["disabled"])
-
-        # File loading buttons
-        self.load.button_open.grid(column=10, row=10)
-        self.load.button_open.configure(command=self.select_filepath)
-        self.load.label_file.grid(column=20, row=10)
-
-    def _switch_pin(self, item):
-        """Change pin state & set laser/psu StringVar's"""
-        logger.debug("Changing pin for %s", item)
-        pin = OUT_PINS[item]
-        switch_pin(pin)
-        self.gpio.laser_label.set(relay_state(OUT_PINS['laser']))
-        self.gpio.psu_label.set(relay_state(OUT_PINS['psu']))
 
     def _authorize(self):
         """Authorize the user, allowing them to do other functions"""
@@ -229,107 +160,100 @@ class MainWindow(tk.Frame, Sender):
         if not firmware and not name:
             messagebox.showerror("Unable to Authorize",
                                  "The PN532 was unable to initialize")
-        retry = True
+        retry = 3
         while retry:
             uid = get_uid_noblock()
             if not uid:
-                retry = messagebox.askretrycancel("No UID found",
+                # True/False are 1/0, so it works
+                again = messagebox.askretrycancel("No UID found",
                                                   ("Could not find NFC tag."
                                                    "Try again?"))
+                if again:
+                    retry -= 1
+                else:
+                    return
             else:
-                retry = False
+                retry = 0
         if uid:
             verified = verify_uid(uid)
             if not verified:
                 messagebox.showerror("Not Authorized",
                                      ("You do not have authorization to "
                                       "use this device."))
-        try:
-            username = get_user_uid(uid)
-            realname = get_user_realname()
-        except BaseException as ex:
-            messagebox.showerror("Error:", ex)
-        current_user = is_current_user(username)
-        if not current_user:
-            messagebox.showerror("Incorrect user",
-                                 ("The provided NFC tag is not for the "
-                                  "current user."))
-        if current_user and uid and verified:
             try:
-                board_setup = gpio_setup()
+                username = get_user_uid(uid)
+                realname = get_user_realname()
             except BaseException as ex:
-                messagebox.showerror("GPIO Error:", ex)
-            if board_setup:
-                _ = disable_relay(OUT_PINS['laser'])
-                _ = disable_relay(OUT_PINS['psu'])
-            # Let the GPIO buttons actually do something!
-            self.gpio.button_psu.state(["!disabled"])
-            self.gpio.psu_label.set(relay_state(OUT_PINS['psu']))
-            self.gpio.button_laser.state(["!disabled"])
-            self.gpio.laser_label.set(relay_state(OUT_PINS['laser']))
-            self.gpio.button_reset_hard.state(["!disabled"])
-            self.conn.button_conn.state(["!disabled"])
-            messagebox.showinfo("Done",
-                                "Everything is setup, {}".format(realname))
-            logger.info("user %s authorized", username)
-        else:
-            messagebox.showerror("Error", "Something went wrong")
+                messagebox.showerror("Error:", ex)
+            current_user = is_current_user(username)
+            if not current_user:
+                messagebox.showerror("Incorrect user",
+                                     ("The provided NFC tag is not for the "
+                                      "current user."))
+            if current_user and uid and verified:
+                try:
+                    board_setup = gpio_setup()
+                except BaseException as ex:
+                    messagebox.showerror("GPIO Error:", ex)
+                if board_setup:
+                    _ = disable_relay(OUT_PINS['laser'])
+                    _ = disable_relay(OUT_PINS['psu'])
+                else:
+                    messagebox.showerror("Failed", "Board not setup")
+                    return
+                # Let the buttons actually do something!
+                self._activate_buttons()
+                self._relay_states()
+                logger.info("user %s authorized", username)
+                self.var["status"].set("Authorized, not connected")
+                messagebox.showinfo("Done",
+                                    "Everything is setup, {}".format(realname))
+            else:
+                messagebox.showerror("Error", "Something went wrong")
 
-    def _activate_conn(self):
-        """Enable the connection buttons"""
-        self.conn.button_home.configure(command=self.home)
-        self.conn.button_home.state(["!disabled"])
-        self.conn.button_reset_soft.configure(command=self.soft_reset)
-        self.conn.button_reset_soft.state(["!disabled"])
-        self.conn.button_unlock.configure(command=self.unlock)
-        self.conn.button_unlock.state(["!disabled"])
-        self.gcode.button_start.state(["!disabled"])
-        self.gcode.button_pause.state(["!disabled"])
-        self.gcode.button_stop.state(["!disabled"])
-        self.file_scan_thread = Thread(target=self._file_scanning,
-                                       name="FileScanThread")
-        self.file_scan_thread.start()
-        logger.info("File scanning started as %s", self.file_scan_thread.name)
-
-    def _deactivate_conn(self):
-        """Enable the connection buttons"""
-        self.conn.button_home.state(["disabled"])
-        self.conn.button_reset_soft.state(["disabled"])
-        self.conn.button_unlock.state(["disabled"])
-        self.gcode.button_start.state(["disabled"])
-        self.gcode.button_pause.state(["disabled"])
-        self.gcode.button_stop.state(["disabled"])
-        logger.info("Stopping file scanning %s", self.file_scan_thread)
-        self.file_scan_thread = None
-
-
-    def _file_scanning(self):
-        """Scan directory for files that have been recently written"""
-        monitor = Inotify()
-        monitor.add_watch(GDIR, IN_CLOSE_WRITE)
-        logger.debug("Automatic file scanning will start: %s",
-                     bool(self.file_scan_thread))
-        while self.file_scan_thread:
+    def _activate_buttons(self):
+        """Enable the buttons"""
+        for button in self.buttons.iterkeys():
+            logger.debug("Enabling %s", button)
             try:
-                for event in monitor.event_gen():
-                    if event is not None:
-                        filename = event[3]
-                        logger.debug("File creation detected: %s", filename)
-                        extension = os.path.splitext(filename)[1]
-                        if extension in GCODE_EXT:
-                            logger.info("Auto-loading %s", filename)
-                            self.read_file(os.path.join(GDIR, filename))
-                    elif not self.file_scan_thread:
-                        logger.debug("Breaking _file_scanning()")
-                        break
-            finally:
-                logger.debug("'finally' removing watched directory")
-                monitor.remove_watch(GDIR)
-        logger.debug("Removing watched directory")
-        monitor.remove_watch(GDIR)
-        logger.debug("_file_scanning() thread is now shut down")
+                self.buttons[button].state(["!disabled"])
+            except ValueError:
+                logger.exception("Failed to enable %s", button)
+        logger.info("Buttons enabled")
 
-    def select_filepath(self):
+    def _deactivate_buttons(self):
+        """Enable the buttons"""
+        for button in self.buttons.iterkeys():
+            logger.debug("Disabling %s", button)
+            try:
+                self.buttons[button].state(["disabled"])
+            except ValueError:
+                logger.exception("Failed to disable %s", button)
+        logger.info("Buttons disabled")
+
+    def _relay_states(self):
+        """Update the variables of the relay states"""
+        self.var["laser_label"].set(relay_state(OUT_PINS['laser']))
+        self.var["psu_label"].set(relay_state(OUT_PINS['psu']))
+
+    def _switch_psu(self):
+        self._switch_pin('psu')
+        self._relay_states()
+
+    def _switch_laser(self):
+        self._switch_pin('laser')
+        self._relay_states()
+
+    def _switch_pin(self, item):
+        """Change pin state & set laser/psu StringVar's"""
+        logger.debug("Changing pin for %s", item)
+        pin = OUT_PINS[item]
+        switch_pin(pin)
+
+    def _hard_reset(self):
+        toggle_pin(OUT_PINS["grbl"])
+
+    def _select_filepath(self):
         """Use tkfiledialog to select the appropriate file"""
         valid_files = [("GCODE", ("*.gc",
                                   "*.gcode",
@@ -344,28 +268,22 @@ class MainWindow(tk.Frame, Sender):
         initial_dir = GDIR
         filepath = filedialog.askopenfilename(filetypes=valid_files,
                                               initialdir=initial_dir)
-        self.read_file(filepath)
+        self._read_file(filepath)
 
-    def read_file(self, filepath):
+    def _read_file(self, filepath):
         """Take filepath, set filename StringVar"""
-        self.load.filename.set(os.path.basename(filepath))
+        self.var["filename"].set(os.path.basename(filepath))
         logger.debug("Reading %s into list", filepath)
-        with open(filepath, 'rU') as gcode_file:
-            self.gcode.file = []
-            for line in gcode_file:
-                logger.debug("Appending %s to self.gcode.file", line)
-                self.gcode.file.append(line)
-            logger.debug("self.gcode.file length: %d", len(self.gcode.file))
+        self.gcodefile = GcodeFile(filepath)
+        self.file = self.gcodefile.gcode
 
-    def open(self, device):
+    def _open(self, device=GRBL_SERIAL):
         """Open serial device"""
         try:
-            status = self.open_serial(device)
+            status = self._open_serial(device)
             logger.info("Opened serial: %s", status)
-            self._activate_conn()
-            self.conn.button_conn.configure(command=self.close)
-            self.conn.status.set("Connected")
-            self.conn.connect_b.set("Disconnect")
+            self.buttons["button_conn"].configure(command=self._close)
+            self.var["connect_b"].set("Disconnect")
             return status
         except BaseException:
             self.serial = None
@@ -374,235 +292,167 @@ class MainWindow(tk.Frame, Sender):
             logger.exception("Failed to open serial")
         return False
 
-    def close(self):
+    def _close(self):
         """Close serial device"""
         logger.info("Closing serial")
-        self.close_serial()
-        self._deactivate_conn()
-        self.conn.button_conn.configure(command=lambda: self.open(GRBL_SERIAL))
-        self.conn.status.set("Not Connected")
-        self.conn.connect_b.set("Connect")
+        self._close_serial()
+        self.buttons["button_conn"].configure(command=lambda: self._open(GRBL_SERIAL))
+        self.var["status"].set("Not Connected")
+        self.var["connect_b"].set("Connect")
 
-    #def home(self):
-    #    return Sender.home(self)
+    def _update_status(self):
+        msg = self.log
+        self.var["status"].set(msg)
+        if self.error.qsize() > 0:
+            response, code, message = self.error.get_nowait()
+            messagebox.showerror("{} {}".format(response, code),
+                                 message)
+        if isinstance(self.pos, tuple):
+            self.var["pos_x"].set(self.pos[0])
+            self.var["pos_y"].set(self.pos[1])
+            self.var["pos_z"].set(self.pos[2])
+        if self.max_size != 0:
+            self.var["percent_done"].set(self.progress*100.0)
+        self.mainwindow.after(250, self._update_status)
 
-    #def soft_reset(self):
-    #    return Sender.soft_reset(self)
-
-    #def unlock(self):
-    #    return Sender.unlock(self)
-
-    def run(self, lines=None):
+    def _run(self):
         """Send gcode file to the laser"""
         logger.info("run() called")
         if self.serial is None:
             messagebox.showerror("Serial Error", "GRBL is not connected")
             logger.error("Serial device not set!")
             return
-        #if self.running:
-        #    if self._pause:
-        #        self.resume()
-        #        return
-        #    messagebox.showerror("Currently running",
-        #                         "Please stop current job first.")
-        #    return
-        self.init_run()
-        if lines is not None:
-            logger.info("Lines to send: %d", len(lines))
-            for line in lines:
-                if line is not None:
-                    logger.debug("Queued line: %s", line)
-                    self.log.put(("Queued", line))
-                    self.queue.put(line)
-        #self.log.put(("Queued", "WAIT"))
-        #self.queue.put(("WAIT",))
+        self._init_run()
+        logger.info("Lines to send: %d", len(self.file))
+        self.max_size = float(len(self.file))
+        for line in self.file:
+            if line is not None and len(line) > 0:
+                logger.debug("Queued line: %s", line)
+                self.queue.put(line)
+        self.queue.put(("DONE",))
 
-    #def destroy(self):
-    #    """Clean shutdown"""
-    #    Sender.close_serial(self)
+    def _move(self, direction="origin"):
+        """Send appropriate Gcode to move the laser according to direction"""
+        logger.info("Moving %s", direction)
+        if direction != "origin":
+            if not self.file:
+                messagebox.showerror("File", "File must be loaded first")
+                return
+            else:
+                self.gcodefile.bounding_box_coords()
+        if self.serial:
+            if "box" in direction:
+                power = float(self.objects["spinbox_power_level"].get()) / 100 * 500
+                commands = self.gcodefile.box_gcode(trace=self.var["trace"].get(),
+                                                    strength=power)
+            elif "origin" in direction:
+                commands = ["G21", "G90", "G0X0Y0"]
+            else:
+                commands = self.gcodefile.corner_gcode(direction)
+            for line in commands:
+                self._send_gcode(line)
+        else:
+            messagebox.showerror("Device", "Please connect first")
+
+
+    def _move_ul(self):
+        self._move("ul")
+
+    def _move_dl(self):
+        self._move("dl")
+
+    def _move_dr(self):
+        self._move("dr")
+
+    def _move_ur(self):
+        self._move("ur")
+
+    def _move_c(self):
+        self._move("c")
+
+    def _move_box(self):
+        self._move("box")
+
+    def _move_mc(self):
+        """Mark all outer corners of workpiece"""
+        level = float(self.objects["spinbox_power_level"].get())/100 * 500
+        for corner in ("ul", "ur", "dr", "dl"):
+            self._move(corner)
+            self._test_fire()
+        self._move("00")
+
+    def _jog_u(self):
+        sped = float(self.objects["speed_box"].get())
+        dist = float(self.objects["dist_box"].get())
+        self.jog(y=-dist, speed=sped)
+
+    def _jog_r(self):
+        sped = float(self.objects["speed_box"].get())
+        dist = float(self.objects["dist_box"].get())
+        self.jog(x=dist, speed=sped)
+
+    def _jog_d(self):
+        sped = float(self.objects["speed_box"].get())
+        dist = float(self.objects["dist_box"].get())
+        self.jog(y=dist, speed=sped)
+
+    def _jog_l(self):
+        sped = float(self.objects["speed_box"].get())
+        dist = float(self.objects["dist_box"].get())
+        self.jog(x=-dist, speed=sped)
+
+    def _jog_ul(self):
+        sped = float(self.objects["speed_box"].get())
+        dist = float(self.objects["dist_box"].get())
+        self.jog(x=-dist, y=-dist, speed=sped)
+
+    def _jog_ur(self):
+        sped = float(self.objects["speed_box"].get())
+        dist = float(self.objects["dist_box"].get())
+        self.jog(x=dist, y=-dist, speed=sped)
+
+    def _jog_dr(self):
+        sped = float(self.objects["speed_box"].get())
+        dist = float(self.objects["dist_box"].get())
+        self.jog(x=dist, y=dist, speed=sped)
+
+    def _jog_dl(self):
+        sped = float(self.objects["speed_box"].get())
+        dist = float(self.objects["dist_box"].get())
+        self.jog(x=-dist, y=dist, speed=sped)
+
+    def _test_fire(self):
+        percent = int(self.objects["spinbox_power_level"].get())
+        level = float(percent)/100 * 500
+        logger.info("Test firing @ %d percent of 500 (S%f)", percent, level)
+        fire_list = ["M3 S{}".format(level),
+                     "G1 Z-1 F600",
+                     "M5",
+                     "G0 Z0",
+                    ]
+        for command in fire_list:
+            self._send_gcode(command)
 
     def __shutdown(self):
         message = """Are you sure you want to close?
         Note: Auth will be lost.
         """
         if messagebox.askokcancel("Quit?", message):
-            self.file_scan_thread = None
-            self.close()
-            time.sleep(1)
-            self.root.destroy()
+            self.mainwindow.update_idletasks()
+            self._close()
+            self.mainwindow.destroy()
             shutdown()
 
-
-####---- Generic Functions ----####
-### NFC-related
-def initialize_nfc_reader():
-    """Verify that correct board is present, return firmware ver & name.
-
-    The function name is leftover from the initial function which used
-    Adafruit_PN532 to get the NFC data."""
-    for _ in range(3):
-        # Do this 3 times, because sometimes the board doesn't
-        # wake up fast enough...
-        raw_lines = check_output(["/usr/bin/nfc-scan-device", "-v"])
-        raw_lines = raw_lines.split("\n")
-        try:
-            chip_line = [line for line in raw_lines if "chip:" in line][0]
-            chip_name = chip_line.split(" ")[1]
-            chip_firm = chip_line.split(" ")[2]
-            break
-        except IndexError:
-            logger.debug("PN532 board not awake yet...")
-            time.sleep(1)
-    else:
-        chip_firm, chip_name = None, None
-    return (chip_firm, chip_name)
-
-## NFC UID get
-def _dummy_get_uid():
-    """() -> random 4 byte hex string"""
-    return "%08x" % random.randrange(16**8)
-
-def get_uid_noblock(dummy=False):
-    """Uses libnfc via /usr/bin/nfc-list to return NFCID or None if not
-    just a single NFC tag is found"""
-    # Fetch dummy if needed, mostly for testing purposes
-    if dummy:
-        uid_ascii = _dummy_get_uid()
-    else:
-        # Only search for ISO14443A tags, and be verbose about it
-        raw_output = check_output(["/usr/bin/nfc-list",
-                                   "-t", "1",
-                                   "-v"])
-        iso_found = [line for line in raw_output.split("\n")
-                     if "ISO14443A" in line]
-        num_found = iso_found[0].split()[0]
-        # Check for only one tag present
-        if num_found != "1":
-            logger.info("Incorrect number of tags: %s", num_found)
-            uid_ascii = None
-        else:
-            nfcid_line = [line for line in raw_output.split("\n")
-                          if "NFCID" in line]
-            # The UID will be after the colon
-            raw_uid = nfcid_line[0].split(":")[1]
-            uid_list = raw_uid.split()
-            uid_ascii = "".join([x for x in uid_list])
-    return uid_ascii
-
-def get_uid_block(dummy=False):
-    """Returns the UID of a tag, stopping script until UID is returned"""
-    uid = None
-    while uid is None:
-        uid = get_uid_noblock(dummy) # Just pass the dummy argument
-        time.sleep(0.5) # Prevent script from taking too much CPU time
-    return uid
-
-## NFC UID verify
-def _dummy_verify_uid(uid):
-    """Takes a UID, verifies that it matches a dummy value,
-    and returns True/False
-
-    This is just a way of being able to check the other functions without
-    having to implement the API calls yet (esp. since the API doesn't even
-    exist yet)"""
-    return bool(uid)
-
-def verify_uid(uid):
-    """Takes a UID, returns True/False depending on user permission"""
-    return _dummy_verify_uid(uid) # No API to use yet for users
-
-def get_user_uid(uid, cuid_file="/etc/pam_nfc.conf", dummy=False):
-    """Takes in a UID string, returns string of username."""
-    if not dummy:
-        if os.getuid() != 0:
-            logger.error("User does not have proper permission")
-            raise OSError("Check your priviledge")
-    cuidexist = os.path.isfile(cuid_file)
-    if not cuidexist:
-        raise IOError("Not a valid password file")
-
-    with open(cuid_file, "r") as cryptuids:
-        crypteduid = crypt.crypt(uid, 'RC')
-        username = None
-        for line in cryptuids:
-            if crypteduid in line:
-                username = line.split(" ")[0]
-    return username
-
-def is_current_user(username):
-    """Takes in a username, returns whether logged-in user"""
-    return username == os.environ['SUDO_USER']
-
-def get_user_realname():
-    """Returns a string of the current user's real name"""
-    cur_nam = os.getenv("SUDO_USER")
-    gecos = pwd.getpwnam(cur_nam)[4]
-    real_name = gecos.split(",")[0]
-    return real_name
-
-### GPIO-related
-def gpio_setup():
-    """Set up GPIO for use, returns True/False if all setup successful
-
-    Not only gets the GPIO for the board, but also sets the appropriate pins
-    for output and input."""
-    GPIO.wiringPiSetupGpio() # BCM mode
-    message = None
-    try:
-        for _, pin in OUT_PINS.iteritems():
-            logger.info("Configuring pin %d", pin)
-            GPIO.pinMode(pin, GPIO.OUTPUT)
-            GPIO.digitalWrite(pin, GPIO.HIGH)
-    except BaseException as message:
-        logger.exception("Failed to setup pins")
-        raise
-    if message:
-        board = False
-    else:
-        board = True
-    return board
-
-def disable_relay(pin, disabled=True):
-    """Take OUT pin, disable (by default) relay. Returns pin state.
-
-    disabled=False will enable the relay."""
-    if disabled:
-        logger.debug("Disabling pin %d", pin)
-        GPIO.digitalWrite(pin, GPIO.HIGH)
-    else:
-        logger.debug("Enabling pin %d", pin)
-        GPIO.digitalWrite(pin, GPIO.LOW)
-    return GPIO.digitalRead(pin)
-
-def relay_state(pin):
-    """Take in pin, return string state of the relay"""
-    disabled = GPIO.digitalRead(pin)
-    state = "off"
-    if not disabled:
-        state = "on"
-    return state
-
-def switch_pin(pin):
-    """Take pin, switch pin state"""
-    logger.info("Switching pin %d", pin)
-    cur_state = GPIO.digitalRead(pin)
-    new_state = not cur_state
-    GPIO.digitalWrite(pin, new_state)
-
-def toggle_pin(pin):
-    """Take pinn, switch pin states for short period of time"""
-    logger.info("Toggling pin %d", pin)
-    switch_pin(pin)
-    time.sleep(0.25)
-    switch_pin(pin)
-    logger.debug("Pin %d toggled", pin)
+    def run(self):
+        """Mainloop run method"""
+        self.mainwindow.after(0, self._update_status)
+        self.mainwindow.mainloop()
 
 ####---- MAIN ----####
 def main():
     """Main function"""
-    root = tk.Tk()
-    MainWindow(root)
-    root.mainloop()
+    root = MainWindow()
+    root.run()
 
 def shutdown():
     """Shutdown commands"""
@@ -617,7 +467,6 @@ def shutdown():
     logger.info("%d thread(s) still alive: %s", active_count(), thread_enum())
     if active_count() > 1:
         logger.critical("CANNOT SHUTDOWN PROPERLY")
-    sys.exit(0)
 
 def handler_cli(signum, frame):
     """Signal handler"""
@@ -636,8 +485,10 @@ def setup_logging(default_path='logging.yaml',
         with open(path, "rt") as conf_file:
             config = yaml.safe_load(conf_file.read())
         logging.config.dictConfig(config)
+        coloredlogs.install()
     else:
         logging.basicConfig(level=default_level)
+        coloredlogs.install(level=default_level)
 
 ####---- BODY ----####
 setup_logging()
