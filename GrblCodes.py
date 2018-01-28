@@ -5,6 +5,12 @@
 __maintainer__ = "Dylan Armitage"
 __email__ = "d.armitage89@gmail.com"
 
+## Limits
+### These are just for this particular machine
+LIMITS = dict(X=(1, 300),
+              Y=(1, 200),
+             )
+
 ## dict(alarm_code : (alarm message, alarm description))
 ALARM_CODES = {1:("Hard limit",
                   "Hard limit has been triggered."

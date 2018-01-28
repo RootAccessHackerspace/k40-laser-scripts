@@ -120,6 +120,7 @@
         <property name="width">200</property>
         <layout>
           <property name="column">1</property>
+          <property name="ipadx">10</property>
           <property name="propagate">True</property>
           <property name="row">0</property>
           <property name="rowspan">2</property>
@@ -180,6 +181,7 @@
         </child>
         <child>
           <object class="ttk.Label" id="label_psu">
+            <property name="font">TkFixedFont</property>
             <property name="textvariable">string:psu_label</property>
             <property name="width">3</property>
             <layout>
@@ -192,6 +194,7 @@
         </child>
         <child>
           <object class="ttk.Label" id="label_laser">
+            <property name="font">TkFixedFont</property>
             <property name="textvariable">string:laser_label</property>
             <property name="width">3</property>
             <layout>
@@ -213,6 +216,7 @@
           <property name="column">0</property>
           <property name="propagate">True</property>
           <property name="row">1</property>
+          <property name="rowspan">2</property>
           <rows>
             <row id="0">
               <property name="weight">0</property>
@@ -228,7 +232,7 @@
           <object class="ttk.Button" id="button_start">
             <property name="command">_run</property>
             <property name="compound">top</property>
-            <property name="image">button_play.gif</property>
+            <property name="image">play.gif</property>
             <property name="state">disabled</property>
             <property name="text" translatable="yes">Start</property>
             <layout>
@@ -242,7 +246,7 @@
           <object class="ttk.Button" id="button_pause">
             <property name="command">_pause</property>
             <property name="compound">top</property>
-            <property name="image">button_pause.gif</property>
+            <property name="image">pause.gif</property>
             <property name="state">disabled</property>
             <property name="text" translatable="yes">Pause</property>
             <layout>
@@ -256,7 +260,7 @@
           <object class="ttk.Button" id="button_stop">
             <property name="command">_stop_run</property>
             <property name="compound">top</property>
-            <property name="image">button_stop.gif</property>
+            <property name="image">stop.gif</property>
             <property name="state">disabled</property>
             <property name="text" translatable="yes">Stop</property>
             <layout>
@@ -264,6 +268,476 @@
               <property name="propagate">True</property>
               <property name="row">0</property>
             </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Checkbutton" id="check_checkmode">
+            <property name="command">_toggle_checkmode</property>
+            <property name="state">disabled</property>
+            <property name="text" translatable="yes">Check Mode</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="columnspan">2</property>
+              <property name="propagate">True</property>
+              <property name="row">1</property>
+              <property name="sticky">w</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Frame" id="frame_percentdone">
+            <property name="height">200</property>
+            <property name="width">200</property>
+            <layout>
+              <property name="column">1</property>
+              <property name="columnspan">2</property>
+              <property name="propagate">True</property>
+              <property name="row">1</property>
+              <property name="sticky">e</property>
+            </layout>
+            <child>
+              <object class="ttk.Label" id="label_percentdone">
+                <property name="text" translatable="yes">Done:</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Label" id="label_pdone">
+                <property name="justify">right</property>
+                <property name="textvariable">double:percent_done</property>
+                <property name="width">8</property>
+                <layout>
+                  <property name="column">1</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                  <property name="sticky">e</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Label" id="label_p">
+                <property name="text" translatable="yes">%</property>
+                <layout>
+                  <property name="column">2</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                  <property name="sticky">w</property>
+                </layout>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Labelframe" id="frame_motion">
+            <property name="height">200</property>
+            <property name="text" translatable="yes">Motion</property>
+            <property name="width">200</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="columnspan">3</property>
+              <property name="propagate">True</property>
+              <property name="row">2</property>
+              <property name="sticky">w</property>
+              <columns>
+                <column id="3">
+                  <property name="minsize">0</property>
+                  <property name="pad">4</property>
+                  <property name="weight">0</property>
+                </column>
+                <column id="4">
+                  <property name="pad">0</property>
+                </column>
+              </columns>
+            </layout>
+            <child>
+              <object class="ttk.Frame" id="frame_corners">
+                <property name="height">200</property>
+                <property name="width">200</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="propagate">True</property>
+                  <property name="row">1</property>
+                </layout>
+                <child>
+                  <object class="ttk.Button" id="move_ul">
+                    <property name="command">_move_ul</property>
+                    <property name="image">corner_ul.gif</property>
+                    <property name="state">disabled</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="propagate">True</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="ttk.Button" id="move_ur">
+                    <property name="command">_move_ur</property>
+                    <property name="image">corner_ur.gif</property>
+                    <property name="state">disabled</property>
+                    <layout>
+                      <property name="column">2</property>
+                      <property name="propagate">True</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="ttk.Button" id="move_c">
+                    <property name="command">_move_c</property>
+                    <property name="image">corner_c.gif</property>
+                    <property name="state">disabled</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="propagate">True</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="ttk.Button" id="move_dl">
+                    <property name="command">_move_dl</property>
+                    <property name="image">corner_dl.gif</property>
+                    <property name="state">disabled</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="propagate">True</property>
+                      <property name="row">3</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="ttk.Button" id="move_dr">
+                    <property name="command">_move_dr</property>
+                    <property name="image">corner_dr.gif</property>
+                    <property name="state">disabled</property>
+                    <layout>
+                      <property name="column">2</property>
+                      <property name="propagate">True</property>
+                      <property name="row">3</property>
+                    </layout>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Separator" id="sep">
+                <property name="orient">vertical</property>
+                <layout>
+                  <property name="column">3</property>
+                  <property name="ipady">29</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                  <property name="rowspan">4</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Frame" id="frame_laser">
+                <property name="height">200</property>
+                <property name="width">200</property>
+                <layout>
+                  <property name="column">4</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                  <property name="rowspan">2</property>
+                </layout>
+                <child>
+                  <object class="ttk.Frame" id="frame_test_fire">
+                    <property name="height">200</property>
+                    <property name="width">200</property>
+                    <layout>
+                      <property name="column">5</property>
+                      <property name="propagate">True</property>
+                      <property name="row">0</property>
+                    </layout>
+                    <child>
+                      <object class="ttk.Label" id="power_level">
+                        <property name="text" translatable="yes">Power:</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="columnspan">1</property>
+                          <property name="propagate">True</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="ttk.Spinbox" id="spinbox_power_level">
+                        <property name="from_">0</property>
+                        <property name="increment">1</property>
+                        <property name="justify">left</property>
+                        <property name="state">normal</property>
+                        <property name="to">100</property>
+                        <property name="width">3</property>
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="propagate">True</property>
+                          <property name="row">0</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="ttk.Button" id="button_testfire">
+                        <property name="command">_test_fire</property>
+                        <property name="state">disabled</property>
+                        <property name="text" translatable="yes">Test fire</property>
+                        <property name="width">11</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="columnspan">3</property>
+                          <property name="propagate">True</property>
+                          <property name="row">1</property>
+                        </layout>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="ttk.Button" id="button_box">
+                    <property name="command">_move_box</property>
+                    <property name="state">disabled</property>
+                    <property name="text" translatable="yes">Bounding box</property>
+                    <property name="width">11</property>
+                    <layout>
+                      <property name="column">5</property>
+                      <property name="propagate">True</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="ttk.Checkbutton" id="check_trace">
+                    <property name="offvalue">0</property>
+                    <property name="onvalue">1</property>
+                    <property name="text" translatable="yes">Trace</property>
+                    <property name="variable">int:trace</property>
+                    <layout>
+                      <property name="column">4</property>
+                      <property name="propagate">True</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="ttk.Button" id="button_corners">
+                    <property name="command">_move_mc</property>
+                    <property name="state">disabled</property>
+                    <property name="text" translatable="yes">Mark corners</property>
+                    <property name="width">11</property>
+                    <layout>
+                      <property name="column">5</property>
+                      <property name="propagate">True</property>
+                      <property name="row">2</property>
+                    </layout>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="ttk.Labelframe" id="frame_jogging">
+        <property name="height">200</property>
+        <property name="text" translatable="yes">Jogging</property>
+        <property name="width">200</property>
+        <layout>
+          <property name="column">1</property>
+          <property name="propagate">True</property>
+          <property name="row">2</property>
+          <property name="sticky">w</property>
+        </layout>
+        <child>
+          <object class="ttk.Button" id="button_00">
+            <property name="command">_move</property>
+            <property name="state">disabled</property>
+            <property name="text" translatable="yes">X0 Y0</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="propagate">True</property>
+              <property name="row">0</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Frame" id="frame_dir">
+            <property name="height">200</property>
+            <property name="width">200</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="propagate">True</property>
+              <property name="row">1</property>
+            </layout>
+            <child>
+              <object class="ttk.Button" id="jog_u">
+                <property name="command">_jog_u</property>
+                <property name="image">jog_u.gif</property>
+                <property name="state">disabled</property>
+                <layout>
+                  <property name="column">1</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Button" id="jog_r">
+                <property name="command">_jog_r</property>
+                <property name="image">jog_r.gif</property>
+                <property name="state">disabled</property>
+                <layout>
+                  <property name="column">2</property>
+                  <property name="propagate">True</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Button" id="jog_d">
+                <property name="command">_jog_d</property>
+                <property name="image">jog_d.gif</property>
+                <property name="state">disabled</property>
+                <layout>
+                  <property name="column">1</property>
+                  <property name="propagate">True</property>
+                  <property name="row">2</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Button" id="jog_l">
+                <property name="command">_jog_l</property>
+                <property name="image">jog_l.gif</property>
+                <property name="state">disabled</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="propagate">True</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Button" id="jog_ul">
+                <property name="command">_jog_ul</property>
+                <property name="image">jog_ul.gif</property>
+                <property name="state">disabled</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Button" id="jog_ur">
+                <property name="command">_jog_ur</property>
+                <property name="image">jog_ur.gif</property>
+                <property name="state">disabled</property>
+                <layout>
+                  <property name="column">2</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Button" id="jog_dr">
+                <property name="command">_jog_dr</property>
+                <property name="image">jog_dr.gif</property>
+                <property name="state">disabled</property>
+                <layout>
+                  <property name="column">2</property>
+                  <property name="propagate">True</property>
+                  <property name="row">2</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Button" id="jog_dl">
+                <property name="command">_jog_dl</property>
+                <property name="image">jog_dl.gif</property>
+                <property name="state">disabled</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="propagate">True</property>
+                  <property name="row">2</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Button" id="jog_cancel">
+                <property name="command">jog_cancel</property>
+                <property name="image">jog_cancel.gif</property>
+                <property name="state">disabled</property>
+                <layout>
+                  <property name="column">1</property>
+                  <property name="propagate">True</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Frame" id="frame_dir_param">
+            <property name="height">200</property>
+            <property name="width">200</property>
+            <layout>
+              <property name="column">0</property>
+              <property name="propagate">True</property>
+              <property name="row">2</property>
+              <property name="rowspan">2</property>
+            </layout>
+            <child>
+              <object class="ttk.Label" id="label_dist">
+                <property name="text" translatable="yes">Distance</property>
+                <layout>
+                  <property name="column">4</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Combobox" id="dist_box">
+                <property name="values">0.01 0.1 1 10 100</property>
+                <property name="width">5</property>
+                <layout>
+                  <property name="column">5</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                  <property name="sticky">w</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Label" id="label_speed">
+                <property name="text" translatable="yes">mm/min</property>
+                <layout>
+                  <property name="column">4</property>
+                  <property name="propagate">True</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Combobox" id="speed_box">
+                <property name="values">10 50 100 500 1000 1500 2000 2500 3000 3500 4000 4500 5000</property>
+                <property name="width">5</property>
+                <layout>
+                  <property name="column">5</property>
+                  <property name="propagate">True</property>
+                  <property name="row">1</property>
+                  <property name="sticky">w</property>
+                </layout>
+              </object>
+            </child>
           </object>
         </child>
       </object>
@@ -277,13 +751,13 @@
           <property name="column">0</property>
           <property name="columnspan">2</property>
           <property name="propagate">True</property>
-          <property name="row">2</property>
+          <property name="row">4</property>
         </layout>
         <child>
           <object class="ttk.Checkbutton" id="file_scan">
             <property name="offvalue">0</property>
             <property name="onvalue">1</property>
-            <property name="state">normal</property>
+            <property name="state">disabled</property>
             <property name="text" translatable="yes">Automatic File Loading</property>
             <property name="variable">int:file_scan_auto</property>
             <layout>
@@ -339,8 +813,28 @@
           <property name="column">1</property>
           <property name="propagate">True</property>
           <property name="row">1</property>
-          <property name="sticky">w</property>
+          <property name="sticky">nw</property>
         </layout>
+        <child>
+          <object class="ttk.Label" id="label_mpos">
+            <property name="text" translatable="yes">MPos</property>
+            <layout>
+              <property name="column">1</property>
+              <property name="propagate">True</property>
+              <property name="row">0</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Label" id="label_wpos">
+            <property name="text" translatable="yes">WPos</property>
+            <layout>
+              <property name="column">3</property>
+              <property name="propagate">True</property>
+              <property name="row">0</property>
+            </layout>
+          </object>
+        </child>
         <child>
           <object class="tk.Label" id="label_x">
             <property name="justify">right</property>
@@ -349,7 +843,7 @@
             <layout>
               <property name="column">0</property>
               <property name="propagate">True</property>
-              <property name="row">0</property>
+              <property name="row">1</property>
               <property name="sticky">e</property>
             </layout>
           </object>
@@ -362,7 +856,7 @@
             <layout>
               <property name="column">0</property>
               <property name="propagate">True</property>
-              <property name="row">1</property>
+              <property name="row">2</property>
               <property name="sticky">e</property>
             </layout>
           </object>
@@ -375,7 +869,7 @@
             <layout>
               <property name="column">0</property>
               <property name="propagate">True</property>
-              <property name="row">2</property>
+              <property name="row">3</property>
               <property name="sticky">e</property>
             </layout>
           </object>
@@ -386,11 +880,11 @@
             <property name="justify">left</property>
             <property name="relief">sunken</property>
             <property name="textvariable">double:pos_x</property>
-            <property name="width">8</property>
+            <property name="width">7</property>
             <layout>
               <property name="column">1</property>
               <property name="propagate">True</property>
-              <property name="row">0</property>
+              <property name="row">1</property>
               <property name="sticky">w</property>
             </layout>
           </object>
@@ -401,11 +895,11 @@
             <property name="justify">left</property>
             <property name="relief">sunken</property>
             <property name="textvariable">double:pos_y</property>
-            <property name="width">8</property>
+            <property name="width">7</property>
             <layout>
               <property name="column">1</property>
               <property name="propagate">True</property>
-              <property name="row">1</property>
+              <property name="row">2</property>
               <property name="sticky">w</property>
             </layout>
           </object>
@@ -416,26 +910,63 @@
             <property name="justify">left</property>
             <property name="relief">sunken</property>
             <property name="textvariable">double:pos_z</property>
-            <property name="width">8</property>
+            <property name="width">7</property>
             <layout>
               <property name="column">1</property>
               <property name="propagate">True</property>
-              <property name="row">2</property>
+              <property name="row">3</property>
               <property name="sticky">w</property>
             </layout>
           </object>
         </child>
         <child>
-          <object class="ttk.Progressbar" id="progress_running">
-            <property name="maximum">1</property>
-            <property name="mode">determinate</property>
-            <property name="orient">horizontal</property>
-            <property name="variable">double:progress_bar</property>
+          <object class="ttk.Label" id="label_wpos_x">
+            <property name="anchor">w</property>
+            <property name="relief">sunken</property>
+            <property name="textvariable">double:wpos_x</property>
+            <property name="width">7</property>
             <layout>
-              <property name="column">1</property>
-              <property name="columnspan">2</property>
+              <property name="column">3</property>
+              <property name="propagate">True</property>
+              <property name="row">1</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Label" id="label_wpos_y">
+            <property name="anchor">w</property>
+            <property name="relief">sunken</property>
+            <property name="textvariable">double:wpos_y</property>
+            <property name="width">7</property>
+            <layout>
+              <property name="column">3</property>
+              <property name="propagate">True</property>
+              <property name="row">2</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Label" id="label_wpos_z">
+            <property name="anchor">w</property>
+            <property name="relief">sunken</property>
+            <property name="textvariable">double:wpos_z</property>
+            <property name="width">7</property>
+            <layout>
+              <property name="column">3</property>
               <property name="propagate">True</property>
               <property name="row">3</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Separator" id="sep">
+            <property name="orient">vertical</property>
+            <layout>
+              <property name="column">2</property>
+              <property name="ipady">30</property>
+              <property name="propagate">True</property>
+              <property name="row">1</property>
+              <property name="rowspan">3</property>
             </layout>
           </object>
         </child>

@@ -9,11 +9,27 @@ handlers:
                 level: INFO
                 formatter: simple
                 stream: ext://sys.stdout
+        info_handler:
+                class: logging.handlers.RotatingFileHandler
+                level: INFO
+                formatter: simple
+                filename: /tmp/k40laserscripts-info.log
+                maxBytes: 10485760 # 10MB
+                backupCount: 5
+                encoding: utf8
+        debug_handler:
+                class: logging.handlers.RotatingFileHandler
+                level: DEBUG
+                formatter: simple
+                filename: /tmp/k40laserscripts-debug.log
+                maxBytes: 5242880 # 50MB
+                backupCount: 10
+                encoding: utf8
 loggers:
         simpleExample:
                 level: INFO
                 handlers: [console]
                 propagate: no
 root:
-        level: INFO
-        handlers: [console]
+        level: DEBUG
+        handlers: [console, info_handler, debug_handler]
