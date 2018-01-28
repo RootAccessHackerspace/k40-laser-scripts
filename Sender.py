@@ -12,7 +12,10 @@ __email__ = "d.armitage89@gmail.com"
 ####---- Import ----####
 from collections import deque
 from threading import Thread
-from Queue import Queue, Empty
+try:
+    from Queue import Queue, Empty
+except ImportError:
+    from queue import Queue, Empty
 
 import re
 import logging
