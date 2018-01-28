@@ -22,17 +22,15 @@ import logging
 import logging.config
 import coloredlogs
 
-from threading import enumerate as thread_enum, active_count
+from threading import enumerate as thread_enum, active_count # pylint: disable=wrong-import-order
 import yaml
 
 from Sender import Sender
 from NFCcontrol import initialize_nfc_reader, get_uid_noblock, verify_uid
 from NFCcontrol import get_user_uid, get_user_realname, is_current_user
 from GPIOcontrol import gpio_setup, disable_relay, relay_state
-from GPIOcontrol import switch_pin, toggle_pin
+from GPIOcontrol import switch_pin, toggle_pin, OUT_PINS
 from GcodeParser import GcodeFile
-# Variable imports
-from GPIOcontrol import OUT_PINS
 
 try:
     import tkMessageBox as messagebox
@@ -66,7 +64,7 @@ GRBL_SERIAL = "/dev/ttyAMA0"
 ####---- Classes ----####
 class MainWindow(Sender):
     """Main window"""
-    # pylint: disable=too-many-ancestors,too-many-instance-attributes,too-few-public-methods
+    # pylint: disable=too-many-ancestors,too-many-instance-attributes,unused-variable
     def __init__(self):
         ## Sender methods
         Sender.__init__(self)
@@ -154,7 +152,7 @@ class MainWindow(Sender):
         # All done
         logger.info("Window started")
 
-    def _authorize(self):
+    def _authorize(self): # pylint: disable=too-many-branches
         """Authorize the user, allowing them to do other functions"""
         firmware, name = initialize_nfc_reader()
         if not firmware and not name:
@@ -213,7 +211,7 @@ class MainWindow(Sender):
 
     def _activate_buttons(self):
         """Enable the buttons"""
-        for button in self.buttons.iterkeys():
+        for button in self.buttons:
             logger.debug("Enabling %s", button)
             try:
                 self.buttons[button].state(["!disabled"])
@@ -223,7 +221,7 @@ class MainWindow(Sender):
 
     def _deactivate_buttons(self):
         """Enable the buttons"""
-        for button in self.buttons.iterkeys():
+        for button in self.buttons:
             logger.debug("Disabling %s", button)
             try:
                 self.buttons[button].state(["disabled"])
@@ -244,13 +242,13 @@ class MainWindow(Sender):
         self._switch_pin('laser')
         self._relay_states()
 
-    def _switch_pin(self, item):
+    def _switch_pin(self, item): # pylint: disable=no-self-use
         """Change pin state & set laser/psu StringVar's"""
         logger.debug("Changing pin for %s", item)
         pin = OUT_PINS[item]
         switch_pin(pin)
 
-    def _hard_reset(self):
+    def _hard_reset(self): # pylint: disable=no-self-use
         toggle_pin(OUT_PINS["grbl"])
 
     def _select_filepath(self):
@@ -296,7 +294,8 @@ class MainWindow(Sender):
         """Close serial device"""
         logger.info("Closing serial")
         self._close_serial()
-        self.buttons["button_conn"].configure(command=lambda: self._open(GRBL_SERIAL))
+        self.buttons["button_conn"].configure(command=lambda:
+                                              self._open(GRBL_SERIAL))
         self.var["status"].set("Not Connected")
         self.var["connect_b"].set("Connect")
 
@@ -326,7 +325,7 @@ class MainWindow(Sender):
         logger.info("Lines to send: %d", len(self.file))
         self.max_size = float(len(self.file))
         for line in self.file:
-            if line is not None and len(line) > 0:
+            if line:
                 logger.debug("Queued line: %s", line)
                 self.queue.put(line)
         self.queue.put(("DONE",))
@@ -342,8 +341,8 @@ class MainWindow(Sender):
                 self.gcodefile.bounding_box_coords()
         if self.serial:
             if "box" in direction:
-                power = float(self.objects["spinbox_power_level"].get()) / 100 * 500
-                commands = self.gcodefile.box_gcode(trace=self.var["trace"].get(),
+                power = float(self.objects["spinbox_power_level"].get()) / 100 * 500 # pylint: disable=line-too-long
+                commands = self.gcodefile.box_gcode(trace=self.var["trace"].get(), # pylint: disable=line-too-long
                                                     strength=power)
             elif "origin" in direction:
                 commands = ["G21", "G90", "G0X0Y0"]
@@ -375,7 +374,6 @@ class MainWindow(Sender):
 
     def _move_mc(self):
         """Mark all outer corners of workpiece"""
-        level = float(self.objects["spinbox_power_level"].get())/100 * 500
         for corner in ("ul", "ur", "dr", "dl"):
             self._move(corner)
             self._test_fire()
