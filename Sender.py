@@ -114,23 +114,19 @@ class Sender(object):
     def _stop_run(self):
         """Stop the current run of Gcode"""
         logger.debug("Called Sender._stop_run()")
-        logger.debug("Calling self._pause()")
-        self._pause()
         logger.info("Stopping run")
         #self._stop = True
         logger.debug("Purging Grbl")
         self._purge_grbl()
         logger.debug("Clearing queue")
         self._empty_queue()
+        self.progress = 0.0
+        self.max_size = 0.0
         logger.info("Run Stopped")
 
     def _purge_grbl(self):
         """Purge the buffer of grbl"""
         logger.debug("Called Sender._purge_grbl()")
-        logger.debug("Sending control-code pause")
-        self.serial.write(b"!") # Immediately pause
-        self.serial.flush()
-        time.sleep(1)
         logger.debug("Calling self._soft_reset()")
         self._soft_reset()
         logger.debug("Calling self._unlock()")
@@ -145,32 +141,46 @@ class Sender(object):
         if self.running:
             logger.debug("self.running == True when _run_ended()")
             logger.info("Run ended")
-        logger.debug(("Run ended, pre", {"_pause": self._paused,
-                                         "running": self.running,
-                                        }
-                     ))
-        #self._pause = False
-        #self.running = False
-        logger.debug(("Run ended, post", {"_pause": self._paused,
-                                          "running": self.running,
-                                         }))
+            self.running = False
+        self.progress = 0.0
 
     def _soft_reset(self):
         """Send GRBL reset command"""
         logger.debug("Called Sender._soft_reset()")
         if self.serial:
-            self.serial.write(b"\030")
-            logger.debug("Sent b'\030'")
+            self.serial.write(b"\x18")
+            logger.debug("Sent b'\x18'")
 
     def _unlock(self):
         """Send GRBL unlock command"""
         logger.debug("Called Sender._unlock()")
         self._send_gcode("$X")
+        time.sleep(0.25)
+        self.serial.write(b"\n\n")
+        self.progress = 0.0
+        self.max_size = 0.0
 
     def _home(self):
         """Send GRBL home command"""
         logger.debug("Called Sender._home()")
         self._send_gcode("$H")
+        self.progress = 0.0
+        self.max_size = 0.0
+
+    def jog(self, x=0, y=0, speed=5000):
+        """Send a jog command to Grbl"""
+        jog_list = ["$J=", "G21", "G91"]
+        jog_list.append("X{}".format(x))
+        jog_list.append("Y{}".format(y))
+        jog_list.append("F{}".format(speed))
+        jog_cmd = "".join(jog_list)
+        logger.info("Jogging X%s Y%s @ F%s", x, y, speed)
+        self._send_gcode(jog_cmd)
+
+    def jog_cancel(self):
+        """Cancel jog command"""
+        logger.info("Cancelling jog")
+        self.serial.write(b"\x85")
 
     def _send_gcode(self, command):
         """Send GRBL a Gcode/command line"""
@@ -202,13 +212,14 @@ class Sender(object):
                                         "running": self.running
                                        }))
         #self._pause = False
-        #self.running = True
+        self.running = True
         logger.debug(("init_run, post", {"_pause": self._paused,
                                          "running": self.running
                                         }))
         logger.debug("Calling self._empty_queue()")
         self._empty_queue()
         logger.info("Initializing run")
+        self.max_size = 0.0
         self.progress = 0.0
         time.sleep(1) # Give everything a bit of time
 
@@ -220,7 +231,7 @@ class Sender(object):
                                     }))
         if self.serial is None:
             return
-        if self._pause:
+        if self._paused:
             logger.debug("Calling self._resume() b/c _paused==True")
             self._resume()
         else:
@@ -249,9 +260,16 @@ class Sender(object):
                                        "_pause": self._paused,
                                       }))
 
+    def _toggle_checkmode(self):
+        """Toggle the 'check gcode mode' of Grbl"""
+        self._send_gcode("$C")
+
     def __parse_alarm(self, alarm):
         """Logs alarm or error with its short message"""
-        msg, code = alarm.split(":")
+        try:
+            msg, code = alarm.split(":")
+        except ValueError:
+            logger.exception("Error on '%s'", alarm)
         code = int(code)
         if msg == "ALARM":
             short_msg, long_msg = ALARM_CODES[code]
@@ -266,6 +284,32 @@ class Sender(object):
         position = SPLITPOS.split(field)
         self.pos = tuple(float(f) for f in position[1:])
         logger.debug("Position: %s", self.pos)
+
+    def __process_messages(self, message):
+        """Master message processing"""
+        if message.find("<") == 0:
+            logger.debug("Status message received: %s", message)
+            status_msg = message[1:-1]
+            status_fields = status_msg.split("|")
+            #self.log.put(status_fields[0])
+            self.log = status_fields[0]
+            if "error" in status_fields[0].lower():
+                logger.error("Grbl Error: %s", message)
+            elif "alarm" in status_fields[0].lower():
+                logger.error("Grbl Alarm: %s", message)
+            for field in status_fields[1:]:
+                if "MPos:" in field:
+                    self.__parse_position(field)
+        elif any(item in message.upper() for item in ["ALARM", "ERROR"]):
+            self.__parse_alarm(message.upper())
+        elif "MSG" in message:
+            recv_msg = message[1:-1]
+            logger.info("Grbl %s", recv_msg)
+            msg_fields = recv_msg.split(":")
+            if "Pgm End" in msg_fields[1]:
+                self._run_ended()
+        else:
+            logger.error("Unexpected output: %s", message)
 
 
     def _serial_io(self):
@@ -288,13 +332,6 @@ class Sender(object):
         while self.thread: # pylint: disable=too-many-nested-blocks
             # TODO: reduce number of nested blocks
             t_curr = time.time()
-            logger.debug(("serial_io pre DEBUG:",
-                          {"line_count": line_count,
-                           "error_Count": error_count,
-                           "gcode_count": gcode_count,
-                           "char_line": char_line,
-                           "line": line,
-                          }))
             # Poll status if enough time has passed
             if t_curr-t_poll > SERIAL_POLL:
                 self.serial.write("?")
@@ -321,19 +358,8 @@ class Sender(object):
                 # Track number of characters in the Grbl buffer
                 char_line.append(len(line_block)+1)
                 sent_line.append(line_block)
-                logger.debug(("serial_io dur DEBUG line:",
-                              {"line": line,
-                               "line_block": line_block,
-                               "line_count": line_count,
-                               "char_line": char_line,
-                              }))
                 while (sum(char_line) >= RX_BUFFER_SIZE-1
                        or self.serial.in_waiting > 0):
-                    logger.debug(("serial_io dur DEBUG:",
-                                  {"sum(char_line)": sum(char_line),
-                                   "RX_BUFFER_SIZE-1": RX_BUFFER_SIZE-1,
-                                   "serial.in_waiting": self.serial.in_waiting,
-                                  }))
                     out_temp = self.serial.readline().strip()
                     if len(out_temp) > 0:
                         if out_temp.find("ok") >= 0:
@@ -347,24 +373,8 @@ class Sender(object):
                                 sent_line.popleft()
                             except IndexError:
                                 logger.debug("char_line already empty")
-                        elif ("ALARM" or "ERROR") in out_temp:
-                            self.__parse_alarm(out_temp)
-                        elif out_temp.find("<") == 0:
-                            logger.debug("Status message received: %s", out_temp)
-                            status_msg = out_temp[1:-1]
-                            status_fields = status_msg.split("|")
-                            #self.log.put(status_fields[0])
-                            self.log = status_fields[0]
-                            if "error" in status_fields[0].lower():
-                                error_count += 1
-                                logger.error("Grbl Error: %s", out_temp)
-                            elif "alarm" in status_fields[0].lower():
-                                logger.error("Grbl Alarm: %s", out_temp)
-                            for field in status_fields[1:]:
-                                if "MPos:" in field:
-                                    self.__parse_position(field)
                         else:
-                            logger.error("Unexpected output: %s", out_temp)
+                            self.__process_messages(out_temp)
                 self.serial.write(line_block + "\n")
             else:
                 out_temp = self.serial.readline().strip()
@@ -377,34 +387,13 @@ class Sender(object):
                             sent_line.popleft
                         except IndexError:
                             logger.debug("char_line already empty")
-                    elif ("ALARM" or "ERROR") in out_temp:
-                        self.__parse_alarm(out_temp)
-                    elif out_temp.find("<") == 0:
-                        logger.debug("Status message received: %s", out_temp)
-                        status_msg = out_temp[1:-1]
-                        status_fields = status_msg.split("|")
-                        #self.log.put(status_fields[0])
-                        self.log = status_fields[0]
-                        if "error" in status_fields[0].lower():
-                            error_count += 1
-                            logger.error("Grbl Error: %s", out_temp)
-                        elif "alarm" in status_fields[0].lower():
-                            logger.error("Grbl Alarm: %s", out_temp)
-                        for field in status_fields[1:]:
-                            if "MPos:" in field:
-                                self.__parse_position(field)
                     else:
-                        logger.error("Unexpected output: %s", out_temp)
-                if done and line_count == gcode_count:
+                        self.__process_messages(out_temp)
+                if done and (line_count == gcode_count or not self.running):
+                    self.max_size = 0.0
                     self.progress = 0.0
                     done = False
-            logger.debug(("serial_io post DEBUG:",
-                          {"line_count": line_count,
-                           "error_Count": error_count,
-                           "gcode_count": gcode_count,
-                           "char_line": char_line,
-                           "line": line,
-                          }))
+                    line_count = 0
         logger.info("Closing down serial_io")
 
 
