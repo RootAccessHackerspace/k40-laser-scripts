@@ -62,6 +62,9 @@ GCODE_EXT = (".gcode",
 # GRBL serial port
 GRBL_SERIAL = "/dev/ttyAMA0"
 
+# GPIO board setup
+BOARD_SETUP = None
+
 
 ####---- Classes ----####
 class MainWindow(Sender):
@@ -246,6 +249,17 @@ class MainWindow(Sender):
 
     def _switch_pin(self, item):
         """Change pin state & set laser/psu StringVar's"""
+        if not BOARD_SETUP:
+            logger.debug("Setting up GPIO controls")
+            try:
+                board_setup = gpio_setup()
+            except BaseException as ex:
+                messagebox.showerror("GPIO Error:", ex)
+            if board_setup:
+                _ = disable_relay(OUT_PINS['laser'])
+                _ = disable_relay(OUT_PINS['psu'])
+            else:
+                messagebox.showerror("Failed", "Board not setup")
         logger.debug("Changing pin for %s", item)
         pin = OUT_PINS[item]
         switch_pin(pin)
