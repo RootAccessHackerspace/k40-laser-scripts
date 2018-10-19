@@ -26,8 +26,8 @@ from threading import enumerate as thread_enum, active_count
 import yaml
 
 from Sender import Sender
-from NFCcontrol import initialize_nfc_reader, get_uid_noblock, verify_uid
-from NFCcontrol import get_user_uid, get_user_realname, is_current_user
+#from NFCcontrol import initialize_nfc_reader, get_uid_noblock, verify_uid
+#from NFCcontrol import get_user_uid, get_user_realname, is_current_user
 from GPIOcontrol import gpio_setup, disable_relay, relay_state
 from GPIOcontrol import switch_pin, toggle_pin
 from GcodeParser import GcodeFile
@@ -154,82 +154,82 @@ class MainWindow(Sender):
         # All done
         logger.info("Window started")
 
-    def _authorize(self):
-        """Authorize the user, allowing them to do other functions"""
-        firmware, name = initialize_nfc_reader()
-        if not firmware and not name:
-            messagebox.showerror("Unable to Authorize",
-                                 "The PN532 was unable to initialize")
-        retry = 3
-        while retry:
-            uid = get_uid_noblock()
-            if not uid:
-                # True/False are 1/0, so it works
-                again = messagebox.askretrycancel("No UID found",
-                                                  ("Could not find NFC tag."
-                                                   "Try again?"))
-                if again:
-                    retry -= 1
-                else:
-                    return
-            else:
-                retry = 0
-        if uid:
-            verified = verify_uid(uid)
-            if not verified:
-                messagebox.showerror("Not Authorized",
-                                     ("You do not have authorization to "
-                                      "use this device."))
-            try:
-                username = get_user_uid(uid)
-                realname = get_user_realname()
-            except BaseException as ex:
-                messagebox.showerror("Error:", ex)
-            current_user = is_current_user(username)
-            if not current_user:
-                messagebox.showerror("Incorrect user",
-                                     ("The provided NFC tag is not for the "
-                                      "current user."))
-            if current_user and uid and verified:
-                try:
-                    board_setup = gpio_setup()
-                except BaseException as ex:
-                    messagebox.showerror("GPIO Error:", ex)
-                if board_setup:
-                    _ = disable_relay(OUT_PINS['laser'])
-                    _ = disable_relay(OUT_PINS['psu'])
-                else:
-                    messagebox.showerror("Failed", "Board not setup")
-                    return
-                # Let the buttons actually do something!
-                self._activate_buttons()
-                self._relay_states()
-                logger.info("user %s authorized", username)
-                self.var["status"].set("Authorized, not connected")
-                messagebox.showinfo("Done",
-                                    "Everything is setup, {}".format(realname))
-            else:
-                messagebox.showerror("Error", "Something went wrong")
+#    def _authorize(self):
+#        """Authorize the user, allowing them to do other functions"""
+#        firmware, name = initialize_nfc_reader()
+#        if not firmware and not name:
+#            messagebox.showerror("Unable to Authorize",
+#                                 "The PN532 was unable to initialize")
+#        retry = 3
+#        while retry:
+#            uid = get_uid_noblock()
+#            if not uid:
+#                # True/False are 1/0, so it works
+#                again = messagebox.askretrycancel("No UID found",
+#                                                  ("Could not find NFC tag."
+#                                                   "Try again?"))
+#                if again:
+#                    retry -= 1
+#                else:
+#                    return
+#            else:
+#                retry = 0
+#        if uid:
+#            verified = verify_uid(uid)
+#            if not verified:
+#                messagebox.showerror("Not Authorized",
+#                                     ("You do not have authorization to "
+#                                      "use this device."))
+#            try:
+#                username = get_user_uid(uid)
+#                realname = get_user_realname()
+#            except BaseException as ex:
+#                messagebox.showerror("Error:", ex)
+#            current_user = is_current_user(username)
+#            if not current_user:
+#                messagebox.showerror("Incorrect user",
+#                                     ("The provided NFC tag is not for the "
+#                                      "current user."))
+#            if current_user and uid and verified:
+#                try:
+#                    board_setup = gpio_setup()
+#                except BaseException as ex:
+#                    messagebox.showerror("GPIO Error:", ex)
+#                if board_setup:
+#                    _ = disable_relay(OUT_PINS['laser'])
+#                    _ = disable_relay(OUT_PINS['psu'])
+#                else:
+#                    messagebox.showerror("Failed", "Board not setup")
+#                    return
+#                # Let the buttons actually do something!
+#                self._activate_buttons()
+#                self._relay_states()
+#                logger.info("user %s authorized", username)
+#                self.var["status"].set("Authorized, not connected")
+#                messagebox.showinfo("Done",
+#                                    "Everything is setup, {}".format(realname))
+#            else:
+#                messagebox.showerror("Error", "Something went wrong")
+#
+#    def _activate_buttons(self):
+#        """Enable the buttons"""
+#        for button in self.buttons.iterkeys():
+#            logger.debug("Enabling %s", button)
+#            try:
+#                self.buttons[button].state(["!disabled"])
+#            except ValueError:
+#                logger.exception("Failed to enable %s", button)
+#        logger.info("Buttons enabled")
 
-    def _activate_buttons(self):
-        """Enable the buttons"""
-        for button in self.buttons.iterkeys():
-            logger.debug("Enabling %s", button)
-            try:
-                self.buttons[button].state(["!disabled"])
-            except ValueError:
-                logger.exception("Failed to enable %s", button)
-        logger.info("Buttons enabled")
-
-    def _deactivate_buttons(self):
-        """Enable the buttons"""
-        for button in self.buttons.iterkeys():
-            logger.debug("Disabling %s", button)
-            try:
-                self.buttons[button].state(["disabled"])
-            except ValueError:
-                logger.exception("Failed to disable %s", button)
-        logger.info("Buttons disabled")
+#    def _deactivate_buttons(self):
+#        """Enable the buttons"""
+#        for button in self.buttons.iterkeys():
+#            logger.debug("Disabling %s", button)
+#            try:
+#                self.buttons[button].state(["disabled"])
+#            except ValueError:
+#                logger.exception("Failed to disable %s", button)
+#        logger.info("Buttons disabled")
 
     def _relay_states(self):
         """Update the variables of the relay states"""
