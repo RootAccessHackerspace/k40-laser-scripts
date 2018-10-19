@@ -252,10 +252,10 @@ class MainWindow(Sender):
         if not BOARD_SETUP:
             logger.debug("Setting up GPIO controls")
             try:
-                board_setup = gpio_setup()
+                BOARD_SETUP = gpio_setup()
             except BaseException as ex:
                 messagebox.showerror("GPIO Error:", ex)
-            if board_setup:
+            if BOARD_SETUP:
                 _ = disable_relay(OUT_PINS['laser'])
                 _ = disable_relay(OUT_PINS['psu'])
             else:
