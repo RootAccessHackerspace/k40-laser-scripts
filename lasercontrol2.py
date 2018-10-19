@@ -249,6 +249,7 @@ class MainWindow(Sender):
 
     def _switch_pin(self, item):
         """Change pin state & set laser/psu StringVar's"""
+        global BOARD_SETUP
         if not BOARD_SETUP:
             logger.debug("Setting up GPIO controls")
             try:
