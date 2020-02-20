@@ -14,7 +14,7 @@ __author__ = "Dylan Armitage"
 __email__ = "d.armitage89@gmail.com"
 __license__ = "MIT"
 
-####---- Imports ----####
+# Imports
 import sys
 import os
 import signal
@@ -42,11 +42,11 @@ except ImportError:
 import pygubu
 
 
-####---- Variables ----####
+# Variables
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
 # BCM pins for various functions
-## SPI
-### For reference, should we ever go back to using a python SPI protocol
+# SPI
+# For reference, should we ever go back to using a python SPI protocol
 # SPI = dict(cs=8, mosi=10, miso=9, sclk=11)
 
 # Directory where the gcode files will be stored from Visicut
@@ -66,21 +66,19 @@ GRBL_SERIAL = "/dev/ttyAMA0"
 BOARD_SETUP = None
 
 
-####---- Classes ----####
+# Classes
 class MainWindow(Sender):
     """Main window"""
-
-    # pylint: disable=too-many-ancestors,too-many-instance-attributes,too-few-public-methods
     def __init__(self):
-        ## Sender methods
+        # Sender methods
         Sender.__init__(self)
-        ## Main window
+        # Main window
         self.builder = builder = pygubu.Builder()
         builder.add_from_file(os.path.join(CURRENT_DIR, "MainWindow.ui"))
         self.mainwindow = builder.get_object("mainwindow")
         self.mainwindow.protocol("WM_DELETE_WINDOW", self.__shutdown)
         builder.connect_callbacks(self)
-        ## Variables & Buttons
+        # Variables & Buttons
         self.file = []
         self.gcodefile = None
         self.var = {}
@@ -302,7 +300,6 @@ class MainWindow(Sender):
 
     def _move_mc(self):
         """Mark all outer corners of workpiece"""
-        level = float(self.objects["spinbox_power_level"].get()) / 100 * 500
         for corner in ("ul", "ur", "dr", "dl"):
             self._move(corner)
             self._test_fire()
@@ -375,7 +372,7 @@ class MainWindow(Sender):
         self.mainwindow.mainloop()
 
 
-####---- MAIN ----####
+# MAIN
 def main():
     """Main function"""
     root = MainWindow()
@@ -418,9 +415,9 @@ def setup_logging(default_path="logging.yaml", default_level=logging.INFO):
         coloredlogs.install(level=default_level)
 
 
-####---- BODY ----####
+# BODY
 setup_logging()
-logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
+logger = logging.getLogger(__name__)
 if __name__ == "__main__":
     signal.signal(signal.SIGHUP, handler_cli)
     signal.signal(signal.SIGINT, handler_cli)

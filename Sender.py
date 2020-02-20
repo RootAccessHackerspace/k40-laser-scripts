@@ -1,7 +1,6 @@
 #!/usr/bin/env python2
 # coding=UTF-8
 """Module to communicate with GRBL via serial"""
-# pylint: disable=line-too-long
 
 __author__ = "Dylan Armitage"
 __email__ = "d.armitage89@gmail.com"
@@ -9,7 +8,8 @@ __email__ = "d.armitage89@gmail.com"
 # This script is heavily influenced by bCNC
 # https://github.com/vlachoudis/bCNC
 
-####---- Import ----####
+# Import
+from GrblCodes import ALARM_CODES, ERROR_CODES
 from collections import deque
 from threading import Thread
 from Queue import Queue, Empty
@@ -20,9 +20,8 @@ import time
 import datetime
 import serial
 
-logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
+logger = logging.getLogger(__name__)
 
-from GrblCodes import ALARM_CODES, ERROR_CODES
 
 # Global variables
 SERIAL_TIMEOUT = 0.1  # seconds
@@ -37,9 +36,6 @@ SPLITPOS = re.compile(r"[:,]")
 
 class Sender(object):
     """Class that controls access to GRBL"""
-
-    # pylint: disable=too-many-instance-attributes
-    # If we get many more than 8 though...
     def __init__(self):
         # self.log = Queue() # What is returned from GRBL
         self.log = ""
@@ -228,7 +224,7 @@ class Sender(object):
     def _pause(self):
         """Pause run"""
         logger.debug("Called Sender._pause()")
-        logger.debug(("pause, pre", {"_serial": self.serial, "_pause": self._paused,}))
+        logger.debug(("pause, pre", {"_serial": self.serial, "_pause": self._paused, }))
         if self.serial is None:
             return
         if self._paused:
@@ -240,12 +236,12 @@ class Sender(object):
             self.serial.write(b"!")
             self.serial.flush()
             self._paused = True
-        logger.debug(("pause, post", {"_serial": self.serial, "_pause": self._paused,}))
+        logger.debug(("pause, post", {"_serial": self.serial, "_pause": self._paused, }))
 
     def _resume(self):
         """Resume a run"""
         logger.debug("Called Sender._resume()")
-        logger.debug(("resume, pre", {"_serial": self.serial, "_pause": self._paused,}))
+        logger.debug(("resume, pre", {"_serial": self.serial, "_pause": self._paused, }))
         if self.serial is None:
             return
         logger.info("Resuming run")
@@ -253,7 +249,7 @@ class Sender(object):
         self.serial.flush()
         self._paused = False
         logger.debug(
-            ("resume, post", {"_serial": self.serial, "_pause": self._paused,})
+            ("resume, post", {"_serial": self.serial, "_pause": self._paused, })
         )
 
     def _toggle_checkmode(self):
@@ -311,7 +307,6 @@ class Sender(object):
         """Process to perform I/O on GRBL
 
         This is borrowed heavily from stream.py of the GRBL project"""
-        # pylint: disable=too-many-statements,too-many-branches
         # TODO: reduce number of statements
         # TODO: reduce number of branches (somehow...)
         logger.debug("serial_io started")
@@ -324,7 +319,7 @@ class Sender(object):
         done = False
         t_poll = time.time()
 
-        while self.thread:  # pylint: disable=too-many-nested-blocks
+        while self.thread:
             # TODO: reduce number of nested blocks
             t_curr = time.time()
             # Poll status if enough time has passed

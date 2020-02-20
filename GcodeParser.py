@@ -7,11 +7,11 @@ __author__ = "Dylan Armitage"
 __email__ = "d.armitage89@gmail.com"
 
 
-####---- Imports ----####
+# Imports
 import re
 import logging
 
-logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
+logger = logging.getLogger(__name__)
 
 # RegEx
 WHITESPACE = re.compile(
@@ -185,6 +185,6 @@ class GcodeFile(object):
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    stress = GcodeFile("serial_stress_test.gcode")  # pylint: disable=invalid-name
+    stress = GcodeFile("serial_stress_test.gcode")
     print(stress.bounding_box_coords())
     print(stress.box_gcode())

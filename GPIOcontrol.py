@@ -10,16 +10,16 @@ __author__ = "Dylan Armitage"
 __email__ = "d.armitage89@gmail.com"
 __license__ = "MIT"
 
-logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
+logger = logging.getLogger(__name__)
 
-####---- Variables ----####
-## Relays and other outputs
+# Variables
+# Relays and other outputs
 OUT_PINS = dict(laser=20, grbl=27)
-## Sensors and other inputs
+# Sensors and other inputs
 IN_PINS = dict()  # None currently
 
 
-####---- Functions ----####
+# Functions
 def gpio_setup():
     """Set up GPIO for use, returns True/False if all setup successful
 
@@ -33,7 +33,7 @@ def gpio_setup():
             GPIO.pinMode(pin, GPIO.OUTPUT)
             GPIO.digitalWrite(pin, GPIO.HIGH)
     except BaseException as message:
-        logger.exception("Failed to setup pins")
+        logger.exception("Failed to setup pins: {}".format(message))
         raise
     if message:
         board = False
