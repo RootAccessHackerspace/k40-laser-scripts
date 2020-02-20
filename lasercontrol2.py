@@ -61,6 +61,7 @@ BOARD_SETUP = None
 # Classes
 class MainWindow(Sender):
     """Main window"""
+
     def __init__(self):
         # Sender methods
         Sender.__init__(self)
@@ -215,8 +216,7 @@ class MainWindow(Sender):
         """Close serial device"""
         logger.info("Closing serial")
         self._close_serial()
-        self.buttons["button_conn"].configure(command=lambda:
-                                              self._open(GRBL_SERIAL))
+        self.buttons["button_conn"].configure(command=lambda: self._open(GRBL_SERIAL))
         self.var["status"].set("Not Connected")
         self.var["connect_b"].set("Connect")
 
@@ -263,7 +263,8 @@ class MainWindow(Sender):
             if "box" in direction:
                 power = float(self.objects["spinbox_power_level"].get()) / 100 * 500
                 commands = self.gcodefile.box_gcode(
-                    trace=self.var["trace"].get(), strength=power)
+                    trace=self.var["trace"].get(), strength=power
+                )
             elif "origin" in direction:
                 commands = ["G21", "G90", "G0X0Y0"]
             else:

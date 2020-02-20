@@ -36,6 +36,7 @@ SPLITPOS = re.compile(r"[:,]")
 
 class Sender(object):
     """Class that controls access to GRBL"""
+
     def __init__(self):
         # self.log = Queue() # What is returned from GRBL
         self.log = ""
@@ -223,7 +224,7 @@ class Sender(object):
     def _pause(self):
         """Pause run"""
         logger.debug("Called Sender._pause()")
-        logger.debug(("pause, pre", {"_serial": self.serial, "_pause": self._paused, }))
+        logger.debug(("pause, pre", {"_serial": self.serial, "_pause": self._paused,}))
         if self.serial is None:
             return
         if self._paused:
@@ -235,12 +236,12 @@ class Sender(object):
             self.serial.write(b"!")
             self.serial.flush()
             self._paused = True
-        logger.debug(("pause, post", {"_serial": self.serial, "_pause": self._paused, }))
+        logger.debug(("pause, post", {"_serial": self.serial, "_pause": self._paused,}))
 
     def _resume(self):
         """Resume a run"""
         logger.debug("Called Sender._resume()")
-        logger.debug(("resume, pre", {"_serial": self.serial, "_pause": self._paused, }))
+        logger.debug(("resume, pre", {"_serial": self.serial, "_pause": self._paused,}))
         if self.serial is None:
             return
         logger.info("Resuming run")
@@ -248,7 +249,7 @@ class Sender(object):
         self.serial.flush()
         self._paused = False
         logger.debug(
-            ("resume, post", {"_serial": self.serial, "_pause": self._paused, })
+            ("resume, post", {"_serial": self.serial, "_pause": self._paused,})
         )
 
     def _toggle_checkmode(self):
