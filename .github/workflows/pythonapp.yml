@@ -1,4 +1,4 @@
-name: Python application
+name: k40-laser-scripts
 
 on: [push]
 
@@ -18,10 +18,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: Test with black
-          run: |
-            pip install black
-            # Just check if files would be modified
-            black --check .
+        run: |
+          pip install black
+          # Just check if files would be modified
+          black --check .
       - name: Lint with flake8
         run: |
           pip install flake8
