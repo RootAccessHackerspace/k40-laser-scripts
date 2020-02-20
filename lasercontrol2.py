@@ -21,7 +21,7 @@ import logging
 import logging.config
 import coloredlogs
 
-from threading import enumerate as thread_enum, active_count # pylint: disable=wrong-import-order
+from threading import enumerate as thread_enum, active_count
 import yaml
 
 from Sender import Sender
@@ -171,7 +171,7 @@ class MainWindow(Sender):
         pin = OUT_PINS[item]
         switch_pin(pin)
 
-    def _hard_reset(self): # pylint: disable=no-self-use
+    def _hard_reset(self):
         toggle_pin(OUT_PINS["grbl"])
 
     def _select_filepath(self):
