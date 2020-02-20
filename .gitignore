@@ -105,3 +105,6 @@ venv.bak/
 
 # Swap files
 *.swp
+
+# PyCharm workspace files
+.idea
