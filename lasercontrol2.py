@@ -22,16 +22,13 @@ import logging
 import logging.config
 import coloredlogs
 
-from threading import enumerate as thread_enum, active_count
+from threading import enumerate as thread_enum, active_count # pylint: disable=wrong-import-order
 import yaml
 
 from Sender import Sender
 from GPIOcontrol import gpio_setup, disable_relay, relay_state
-from GPIOcontrol import switch_pin, toggle_pin
+from GPIOcontrol import switch_pin, toggle_pin, OUT_PINS
 from GcodeParser import GcodeFile
-
-# Variable imports
-from GPIOcontrol import OUT_PINS
 
 try:
     import tkMessageBox as messagebox
@@ -180,7 +177,7 @@ class MainWindow(Sender):
         pin = OUT_PINS[item]
         switch_pin(pin)
 
-    def _hard_reset(self):
+    def _hard_reset(self): # pylint: disable=no-self-use
         toggle_pin(OUT_PINS["grbl"])
 
     def _select_filepath(self):
@@ -222,7 +219,8 @@ class MainWindow(Sender):
         """Close serial device"""
         logger.info("Closing serial")
         self._close_serial()
-        self.buttons["button_conn"].configure(command=lambda: self._open(GRBL_SERIAL))
+        self.buttons["button_conn"].configure(command=lambda:
+                                              self._open(GRBL_SERIAL))
         self.var["status"].set("Not Connected")
         self.var["connect_b"].set("Connect")
 
@@ -251,7 +249,7 @@ class MainWindow(Sender):
         logger.info("Lines to send: %d", len(self.file))
         self.max_size = float(len(self.file))
         for line in self.file:
-            if line is not None and len(line) > 0:
+            if line:
                 logger.debug("Queued line: %s", line)
                 self.queue.put(line)
         self.queue.put(("DONE",))
@@ -270,7 +268,6 @@ class MainWindow(Sender):
                 power = float(self.objects["spinbox_power_level"].get()) / 100 * 500
                 commands = self.gcodefile.box_gcode(
                     trace=self.var["trace"].get(), strength=power
-                )
             elif "origin" in direction:
                 commands = ["G21", "G90", "G0X0Y0"]
             else:

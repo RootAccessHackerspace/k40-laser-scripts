@@ -12,7 +12,10 @@ __email__ = "d.armitage89@gmail.com"
 from GrblCodes import ALARM_CODES, ERROR_CODES
 from collections import deque
 from threading import Thread
-from Queue import Queue, Empty
+try:
+    from Queue import Queue, Empty
+except ImportError:
+    from queue import Queue, Empty
 
 import re
 import logging
@@ -83,7 +86,6 @@ class Sender(object):
             time.sleep(1)
         except IOError:
             logger.debug("IOError on setDTR(), but not important")
-            pass
         self.serial.write(b"\n\n")
         self.thread = Thread(target=self._serial_io, name="SerialIOThread")
         self.thread.start()
@@ -167,7 +169,7 @@ class Sender(object):
         self.progress = 0.0
         self.max_size = 0.0
 
-    def jog(self, x=0, y=0, speed=5000):
+    def jog(self, x=0, y=0, speed=5000): # pylint: disable=invalid-name
         """Send a jog command to Grbl"""
         jog_list = ["$J=", "G21", "G91"]
         jog_list.append("X{}".format(x))
@@ -352,7 +354,7 @@ class Sender(object):
                     sum(char_line) >= RX_BUFFER_SIZE - 1 or self.serial.in_waiting > 0
                 ):
                     out_temp = self.serial.readline().strip()
-                    if len(out_temp) > 0:
+                    if out_temp:
                         if out_temp.find("ok") >= 0:
                             gcode_count += 1
                             # The following try-except block seems to be mostly
@@ -369,13 +371,13 @@ class Sender(object):
                 self.serial.write(line_block + "\n")
             else:
                 out_temp = self.serial.readline().strip()
-                if len(out_temp) > 0:
+                if out_temp:
                     if out_temp.find("ok") >= 0:
                         gcode_count += 1
                         try:
                             logger.debug("Removing most recent command")
                             char_line.popleft()
-                            sent_line.popleft
+                            sent_line.popleft()
                         except IndexError:
                             logger.debug("char_line already empty")
                     else:
