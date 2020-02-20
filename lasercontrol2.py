@@ -75,6 +75,7 @@ class MainWindow(Sender):
         self.gcodefile = None
         self.var = {}
         variable_list = [
+            "status",
             "connect_b",
             "laser_label",
             "filename",
