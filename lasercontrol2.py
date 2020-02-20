@@ -26,9 +26,6 @@ from threading import enumerate as thread_enum, active_count
 import yaml
 
 from Sender import Sender
-
-# from NFCcontrol import initialize_nfc_reader, get_uid_noblock, verify_uid
-# from NFCcontrol import get_user_uid, get_user_realname, is_current_user
 from GPIOcontrol import gpio_setup, disable_relay, relay_state
 from GPIOcontrol import switch_pin, toggle_pin
 from GcodeParser import GcodeFile
