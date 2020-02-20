@@ -2,6 +2,8 @@
 
 These files were created to make the use of the modified K40 laser cutter easier.
 
+Dev branch: ![k40-laser-scripts](https://github.com/RootAccessHackerspace/k40-laser-scripts/workflows/k40-laser-scripts/badge.svg?branch=dev)
+
 ## Current setup
 The original control board was removed and replaced with the following equipment:
 * Raspberry Pi 3
