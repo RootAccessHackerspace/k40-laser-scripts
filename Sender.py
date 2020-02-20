@@ -166,7 +166,7 @@ class Sender(object):
         self.progress = 0.0
         self.max_size = 0.0
 
-    def jog(self, x=0, y=0, speed=5000): # pylint: disable=invalid-name
+    def jog(self, x=0, y=0, speed=5000):
         """Send a jog command to Grbl"""
         jog_list = ["$J=", "G21", "G91"]
         jog_list.append("X{}".format(x))
@@ -302,15 +302,15 @@ class Sender(object):
         else:
             logger.error("Unexpected output: %s", message)
 
-    def _serial_io(self):
+    def _serial_io(self):  # noqa: C901
         """Process to perform I/O on GRBL
 
         This is borrowed heavily from stream.py of the GRBL project"""
         # TODO: reduce number of statements
         # TODO: reduce number of branches (somehow...)
+        # TODO: Just reduce complexity in general
         logger.debug("serial_io started")
         line_count = 0
-        error_count = 0
         gcode_count = 0
         char_line = deque()
         sent_line = deque()
