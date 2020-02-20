@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 """GRBL Interface Codes"""
 # More info: https://github.com/gnea/grbl/wiki/Grbl-v1.1-Interface
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 """All GPIO-related functions"""
 
 import time
@@ -28,7 +28,7 @@ def gpio_setup():
     GPIO.wiringPiSetupGpio()  # BCM mode
     message = None
     try:
-        for _, pin in OUT_PINS.iteritems():
+        for _, pin in OUT_PINS.items():
             logger.info("Configuring pin %d", pin)
             GPIO.pinMode(pin, GPIO.OUTPUT)
             GPIO.digitalWrite(pin, GPIO.HIGH)
