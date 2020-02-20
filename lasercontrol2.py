@@ -20,6 +20,7 @@ import signal
 import logging
 import logging.config
 import coloredlogs
+import pygubu
 
 from threading import enumerate as thread_enum, active_count
 import yaml
