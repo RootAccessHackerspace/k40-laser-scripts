@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # coding=UTF-8
 
 """
@@ -7,7 +7,6 @@ This script allows for a user to control the laser.
 This script will grab the UID from an NFC tag, verify that the UID is granted
 access to the laser, then let the user actually do so.
 """
-from __future__ import print_function, unicode_literals
 
 
 __author__ = "Dylan Armitage"
@@ -21,8 +20,9 @@ import signal
 import logging
 import logging.config
 import coloredlogs
+import pygubu
 
-from threading import enumerate as thread_enum, active_count # pylint: disable=wrong-import-order
+from threading import enumerate as thread_enum, active_count
 import yaml
 
 from Sender import Sender
@@ -30,13 +30,8 @@ from GPIOcontrol import gpio_setup, disable_relay, relay_state
 from GPIOcontrol import switch_pin, toggle_pin, OUT_PINS
 from GcodeParser import GcodeFile
 
-try:
-    import tkMessageBox as messagebox
-    import tkFileDialog as filedialog
-except ImportError:
-    import tkinter.messagebox as messagebox
-    import tkinter.filedialog as filedialog
-import pygubu
+import tkinter.messagebox as messagebox
+import tkinter.filedialog as filedialog
 
 
 # Variables
@@ -80,6 +75,7 @@ class MainWindow(Sender):
         self.gcodefile = None
         self.var = {}
         variable_list = [
+            "status",
             "connect_b",
             "laser_label",
             "filename",
@@ -177,7 +173,7 @@ class MainWindow(Sender):
         pin = OUT_PINS[item]
         switch_pin(pin)
 
-    def _hard_reset(self): # pylint: disable=no-self-use
+    def _hard_reset(self):
         toggle_pin(OUT_PINS["grbl"])
 
     def _select_filepath(self):
@@ -267,7 +263,7 @@ class MainWindow(Sender):
             if "box" in direction:
                 power = float(self.objects["spinbox_power_level"].get()) / 100 * 500
                 commands = self.gcodefile.box_gcode(
-                    trace=self.var["trace"].get(), strength=power
+                    trace=self.var["trace"].get(), strength=power)
             elif "origin" in direction:
                 commands = ["G21", "G90", "G0X0Y0"]
             else:
@@ -383,7 +379,7 @@ def shutdown():
         _ = disable_relay(OUT_PINS["laser"])
     except AttributeError as ex:
         logger.exception("Error shutting down GPIO")
-        print("Something went wrong shutting down: {}".format(ex))
+        print(f"Something went wrong shutting down: {ex}")
         print("The GPIO probably never even got initialized...")
     logger.info("%d thread(s) still alive: %s", active_count(), thread_enum())
     if active_count() > 1:
@@ -393,7 +389,7 @@ def shutdown():
 def handler_cli(signum, frame):
     """Signal handler"""
     logger.debug("handler_cli() called")
-    print("Signal {}".format(signum))
+    print(f"Signal {signum}")
     _ = frame
     shutdown()
 

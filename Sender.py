@@ -12,10 +12,7 @@ __email__ = "d.armitage89@gmail.com"
 from GrblCodes import ALARM_CODES, ERROR_CODES
 from collections import deque
 from threading import Thread
-try:
-    from Queue import Queue, Empty
-except ImportError:
-    from queue import Queue, Empty
+from queue import Queue, Empty
 
 import re
 import logging

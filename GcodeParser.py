@@ -1,7 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=UTF-8
 """Module containing Gcode parsing functions"""
-from __future__ import print_function
 
 __author__ = "Dylan Armitage"
 __email__ = "d.armitage89@gmail.com"
@@ -96,14 +95,14 @@ class GcodeFile(object):
         """Take in file of gcode, return tuples of min/max bounding values"""
         if not self.file:
             logger.error("Load file first")
-        if (None, None) in self.extrema.values():
+        if (None, None) in list(self.extrema.values()):
             self.__convert_gcode_internal()
         logger.info("Corner extrema: %s & %s", self.extrema["UL"], self.extrema["DR"])
         return (self.extrema["UL"], self.extrema["DR"])
 
     def box_gcode(self, trace=0, strength=0):
         """Return str G0/1 commands to bound gcode file"""
-        if (None, None) in self.extrema.values():
+        if (None, None) in list(self.extrema.values()):
             self.bounding_box_coords()
         gcode = ["G90", "G21"]
         if trace:
@@ -144,14 +143,14 @@ class GcodeFile(object):
     def _calc_mid_coords(self):
         """Calculate coordinates for middle of workpiece"""
         logger.info("Calculating mid values")
-        if (None, None) in self.extrema.values():
+        if (None, None) in list(self.extrema.values()):
             self.__convert_gcode_internal()
         self.mids["X"] = sum(self.extrema["X"]) / 2.0
         self.mids["Y"] = sum(self.extrema["Y"]) / 2.0
 
     def mid_coords(self):
         """Return (x,y) of coordinates of middle of file"""
-        if (None, None) in self.extrema.values():
+        if (None, None) in list(self.extrema.values()):
             self.__convert_gcode_internal()
         if None in self.mids.values():
             self._calc_mid_coords()
