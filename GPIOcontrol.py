@@ -10,22 +10,22 @@ __author__ = "Dylan Armitage"
 __email__ = "d.armitage89@gmail.com"
 __license__ = "MIT"
 
-logger = logging.getLogger(__name__) #pylint: disable=invalid-name
+logger = logging.getLogger(__name__)
 
-####---- Variables ----####
-## Relays and other outputs
-OUT_PINS = dict(laser=20, psu=21, grbl=27)
-## Sensors and other inputs
-IN_PINS = dict() # None currently
+# Variables
+# Relays and other outputs
+OUT_PINS = dict(laser=20, grbl=27)
+# Sensors and other inputs
+IN_PINS = dict()  # None currently
 
 
-####---- Functions ----####
+# Functions
 def gpio_setup():
     """Set up GPIO for use, returns True/False if all setup successful
 
     Not only gets the GPIO for the board, but also sets the appropriate pins
     for output and input."""
-    GPIO.wiringPiSetupGpio() # BCM mode
+    GPIO.wiringPiSetupGpio()  # BCM mode
     message = None
     try:
         for _, pin in OUT_PINS.iteritems():
@@ -33,13 +33,14 @@ def gpio_setup():
             GPIO.pinMode(pin, GPIO.OUTPUT)
             GPIO.digitalWrite(pin, GPIO.HIGH)
     except BaseException as message:
-        logger.exception("Failed to setup pins")
+        logger.exception("Failed to setup pins: {}".format(message))
         raise
     if message:
         board = False
     else:
         board = True
     return board
+
 
 def disable_relay(pin, disabled=True):
     """Take OUT pin, disable (by default) relay. Returns pin state.
@@ -53,6 +54,7 @@ def disable_relay(pin, disabled=True):
         GPIO.digitalWrite(pin, GPIO.LOW)
     return GPIO.digitalRead(pin)
 
+
 def relay_state(pin):
     """Take in pin, return string state of the relay"""
     logger.debug("relay_state() for pin %s", pin)
@@ -64,12 +66,14 @@ def relay_state(pin):
     logger.debug("Relay state for pin %s is %s", pin, state)
     return state
 
+
 def switch_pin(pin):
     """Take pin, switch pin state"""
     logger.info("Switching pin %d", pin)
     cur_state = GPIO.digitalRead(pin)
     new_state = not cur_state
     GPIO.digitalWrite(pin, new_state)
+
 
 def toggle_pin(pin):
     """Take pinn, switch pin states for short period of time"""
