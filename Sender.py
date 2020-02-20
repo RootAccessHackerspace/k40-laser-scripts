@@ -20,38 +20,40 @@ import time
 import datetime
 import serial
 
-logger = logging.getLogger(__name__) #pylint: disable=invalid-name
+logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 from GrblCodes import ALARM_CODES, ERROR_CODES
 
 # Global variables
-SERIAL_TIMEOUT = 0.1 # seconds
-SERIAL_POLL = 0.25 # seconds
-G_POLL = 10 # seconds
-RX_BUFFER_SIZE = 128 # bytes
-OUTPUT_LOG_QUEUE = False # Whether to write the log queue to a file
+SERIAL_TIMEOUT = 0.1  # seconds
+SERIAL_POLL = 0.25  # seconds
+G_POLL = 10  # seconds
+RX_BUFFER_SIZE = 128  # bytes
+OUTPUT_LOG_QUEUE = False  # Whether to write the log queue to a file
 
 # RegEx
 SPLITPOS = re.compile(r"[:,]")
 
+
 class Sender(object):
     """Class that controls access to GRBL"""
+
     # pylint: disable=too-many-instance-attributes
     # If we get many more than 8 though...
     def __init__(self):
-        #self.log = Queue() # What is returned from GRBL
+        # self.log = Queue() # What is returned from GRBL
         self.log = ""
-        self.queue = Queue() # What to send to GRBL
-        self.error = Queue() # Lengthy error messages
-        self.pos = None # Will be (x,y,z) of machine position
+        self.queue = Queue()  # What to send to GRBL
+        self.error = Queue()  # Lengthy error messages
+        self.pos = None  # Will be (x,y,z) of machine position
         self.serial = None
         self.thread = None
         self.progress = 0.0
         self.max_size = 0.0
 
         self.running = False
-        self._stop = False # Set to True to stop current run
-        self._paused = False # Is it currently paused?
+        self._stop = False  # Set to True to stop current run
+        self._paused = False  # Is it currently paused?
         # The reason _stop and _paused represent different conditions is
         # because of the way GRBL handles stopping/pausing.
         # If GRBL is stopped, GRBL clears its queue, so we no longer have a
@@ -66,14 +68,16 @@ class Sender(object):
     def _open_serial(self, device):
         """Open serial port"""
         logger.info("Opening serial device")
-        self.serial = serial.serial_for_url(device,
-                                            baudrate=115200,
-                                            bytesize=serial.EIGHTBITS,
-                                            parity=serial.PARITY_NONE,
-                                            stopbits=serial.STOPBITS_ONE,
-                                            timeout=SERIAL_TIMEOUT,
-                                            xonxoff=False,
-                                            rtscts=False)
+        self.serial = serial.serial_for_url(
+            device,
+            baudrate=115200,
+            bytesize=serial.EIGHTBITS,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_ONE,
+            timeout=SERIAL_TIMEOUT,
+            xonxoff=False,
+            rtscts=False,
+        )
         logger.debug("Serial: %s", self.serial)
         # Toggle DTR to reset the arduino
         try:
@@ -115,7 +119,7 @@ class Sender(object):
         """Stop the current run of Gcode"""
         logger.debug("Called Sender._stop_run()")
         logger.info("Stopping run")
-        #self._stop = True
+        # self._stop = True
         logger.debug("Purging Grbl")
         self._purge_grbl()
         logger.debug("Clearing queue")
@@ -186,12 +190,10 @@ class Sender(object):
         """Send GRBL a Gcode/command line"""
         logger.debug("Called Sender._send_gcode() with %s", command)
         # Do nothing if not actually up
-        logger.debug(("send_gcode", {"serial": self.serial,
-                                     "running": self.running
-                                    }))
-        if self.serial: # and not self.running:
+        logger.debug(("send_gcode", {"serial": self.serial, "running": self.running}))
+        if self.serial:  # and not self.running:
             logger.debug("self.serial == True")
-            self.queue.put(command+"\n")
+            self.queue.put(command + "\n")
 
     def _empty_queue(self):
         """Clear the queue"""
@@ -208,27 +210,25 @@ class Sender(object):
     def _init_run(self):
         """Initialize a gcode run"""
         logger.debug("Called Sender._init_run()")
-        logger.debug(("init_run, pre", {"_pause": self._paused,
-                                        "running": self.running
-                                       }))
-        #self._pause = False
+        logger.debug(
+            ("init_run, pre", {"_pause": self._paused, "running": self.running})
+        )
+        # self._pause = False
         self.running = True
-        logger.debug(("init_run, post", {"_pause": self._paused,
-                                         "running": self.running
-                                        }))
+        logger.debug(
+            ("init_run, post", {"_pause": self._paused, "running": self.running})
+        )
         logger.debug("Calling self._empty_queue()")
         self._empty_queue()
         logger.info("Initializing run")
         self.max_size = 0.0
         self.progress = 0.0
-        time.sleep(1) # Give everything a bit of time
+        time.sleep(1)  # Give everything a bit of time
 
     def _pause(self):
         """Pause run"""
         logger.debug("Called Sender._pause()")
-        logger.debug(("pause, pre", {"_serial": self.serial,
-                                     "_pause": self._paused,
-                                    }))
+        logger.debug(("pause, pre", {"_serial": self.serial, "_pause": self._paused,}))
         if self.serial is None:
             return
         if self._paused:
@@ -240,25 +240,21 @@ class Sender(object):
             self.serial.write(b"!")
             self.serial.flush()
             self._paused = True
-        logger.debug(("pause, post", {"_serial": self.serial,
-                                      "_pause": self._paused,
-                                     }))
+        logger.debug(("pause, post", {"_serial": self.serial, "_pause": self._paused,}))
 
     def _resume(self):
         """Resume a run"""
         logger.debug("Called Sender._resume()")
-        logger.debug(("resume, pre", {"_serial": self.serial,
-                                      "_pause": self._paused,
-                                     }))
+        logger.debug(("resume, pre", {"_serial": self.serial, "_pause": self._paused,}))
         if self.serial is None:
             return
         logger.info("Resuming run")
         self.serial.write(b"~")
         self.serial.flush()
         self._paused = False
-        logger.debug(("resume, post", {"_serial": self.serial,
-                                       "_pause": self._paused,
-                                      }))
+        logger.debug(
+            ("resume, post", {"_serial": self.serial, "_pause": self._paused,})
+        )
 
     def _toggle_checkmode(self):
         """Toggle the 'check gcode mode' of Grbl"""
@@ -276,7 +272,7 @@ class Sender(object):
         elif msg == "ERROR":
             short_msg, long_msg = ERROR_CODES[code]
         self.error.put((msg, code, long_msg))
-        #self.log.put("{} {}".format(alarm, short_msg))
+        # self.log.put("{} {}".format(alarm, short_msg))
         self.log = "{} {}".format(alarm, short_msg)
 
     def __parse_position(self, field):
@@ -291,7 +287,7 @@ class Sender(object):
             logger.debug("Status message received: %s", message)
             status_msg = message[1:-1]
             status_fields = status_msg.split("|")
-            #self.log.put(status_fields[0])
+            # self.log.put(status_fields[0])
             self.log = status_fields[0]
             if "error" in status_fields[0].lower():
                 logger.error("Grbl Error: %s", message)
@@ -311,7 +307,6 @@ class Sender(object):
         else:
             logger.error("Unexpected output: %s", message)
 
-
     def _serial_io(self):
         """Process to perform I/O on GRBL
 
@@ -329,11 +324,11 @@ class Sender(object):
         done = False
         t_poll = time.time()
 
-        while self.thread: # pylint: disable=too-many-nested-blocks
+        while self.thread:  # pylint: disable=too-many-nested-blocks
             # TODO: reduce number of nested blocks
             t_curr = time.time()
             # Poll status if enough time has passed
-            if t_curr-t_poll > SERIAL_POLL:
+            if t_curr - t_poll > SERIAL_POLL:
                 self.serial.write("?")
                 t_poll = t_curr
             # Get other commands from queue
@@ -356,10 +351,11 @@ class Sender(object):
                 line = line.encode("ascii", "replace").strip()
                 line_block = re.sub(r"\s|\(.*?\)", "", line).upper()
                 # Track number of characters in the Grbl buffer
-                char_line.append(len(line_block)+1)
+                char_line.append(len(line_block) + 1)
                 sent_line.append(line_block)
-                while (sum(char_line) >= RX_BUFFER_SIZE-1
-                       or self.serial.in_waiting > 0):
+                while (
+                    sum(char_line) >= RX_BUFFER_SIZE - 1 or self.serial.in_waiting > 0
+                ):
                     out_temp = self.serial.readline().strip()
                     if len(out_temp) > 0:
                         if out_temp.find("ok") >= 0:
@@ -395,7 +391,6 @@ class Sender(object):
                     done = False
                     line_count = 0
         logger.info("Closing down serial_io")
-
 
     def __write_log_queue(self):
         """Write the log queue to a file"""

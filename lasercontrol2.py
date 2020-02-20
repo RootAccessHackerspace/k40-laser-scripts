@@ -26,11 +26,13 @@ from threading import enumerate as thread_enum, active_count
 import yaml
 
 from Sender import Sender
-#from NFCcontrol import initialize_nfc_reader, get_uid_noblock, verify_uid
-#from NFCcontrol import get_user_uid, get_user_realname, is_current_user
+
+# from NFCcontrol import initialize_nfc_reader, get_uid_noblock, verify_uid
+# from NFCcontrol import get_user_uid, get_user_realname, is_current_user
 from GPIOcontrol import gpio_setup, disable_relay, relay_state
 from GPIOcontrol import switch_pin, toggle_pin
 from GcodeParser import GcodeFile
+
 # Variable imports
 from GPIOcontrol import OUT_PINS
 
@@ -48,16 +50,17 @@ CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
 # BCM pins for various functions
 ## SPI
 ### For reference, should we ever go back to using a python SPI protocol
-#SPI = dict(cs=8, mosi=10, miso=9, sclk=11)
+# SPI = dict(cs=8, mosi=10, miso=9, sclk=11)
 
 # Directory where the gcode files will be stored from Visicut
 GDIR = "/home/users/Public"
-GCODE_EXT = (".gcode",
-             ".gc",
-             ".nc",
-             ".cnc",
-             ".cng",
-            )
+GCODE_EXT = (
+    ".gcode",
+    ".gc",
+    ".nc",
+    ".cnc",
+    ".cng",
+)
 
 # GRBL serial port
 GRBL_SERIAL = "/dev/ttyAMA0"
@@ -69,6 +72,7 @@ BOARD_SETUP = None
 ####---- Classes ----####
 class MainWindow(Sender):
     """Main window"""
+
     # pylint: disable=too-many-ancestors,too-many-instance-attributes,too-few-public-methods
     def __init__(self):
         ## Sender methods
@@ -83,19 +87,20 @@ class MainWindow(Sender):
         self.file = []
         self.gcodefile = None
         self.var = {}
-        variable_list = ["connect_b",
-                         "laser_label",
-                         "filename",
-                         "file_found",
-                         "pos_x",
-                         "pos_y",
-                         "pos_z",
-                         "trace",
-                         "wpos_x",
-                         "wpos_y",
-                         "wpos_z",
-                         "percent_done",
-                        ]
+        variable_list = [
+            "connect_b",
+            "laser_label",
+            "filename",
+            "file_found",
+            "pos_x",
+            "pos_y",
+            "pos_z",
+            "trace",
+            "wpos_x",
+            "wpos_y",
+            "wpos_z",
+            "percent_done",
+        ]
         for var in variable_list:
             try:
                 self.var[var] = builder.get_variable(var)
@@ -103,45 +108,47 @@ class MainWindow(Sender):
                 logger.warning("Variable not defined: %s", var)
         self.var["connect_b"].set("Connect")
         self.buttons = {}
-        button_list = ["button_conn",
-                       "button_home",
-                       "button_soft_reset",
-                       "button_unlock",
-                       "button_reset_hard",
-                       "check_laser",
-                       "button_start",
-                       "button_pause",
-                       "button_stop",
-                       "move_ul",
-                       "move_ur",
-                       "move_dr",
-                       "move_dl",
-                       "move_c",
-                       "button_box",
-                       "button_testfire",
-                       "button_corners",
-                       "button_00",
-                       "check_checkmode",
-                       "jog_u",
-                       "jog_r",
-                       "jog_d",
-                       "jog_l",
-                       "jog_ul",
-                       "jog_ur",
-                       "jog_dl",
-                       "jog_dr",
-                       "jog_cancel",
-                      ]
+        button_list = [
+            "button_conn",
+            "button_home",
+            "button_soft_reset",
+            "button_unlock",
+            "button_reset_hard",
+            "check_laser",
+            "button_start",
+            "button_pause",
+            "button_stop",
+            "move_ul",
+            "move_ur",
+            "move_dr",
+            "move_dl",
+            "move_c",
+            "button_box",
+            "button_testfire",
+            "button_corners",
+            "button_00",
+            "check_checkmode",
+            "jog_u",
+            "jog_r",
+            "jog_d",
+            "jog_l",
+            "jog_ul",
+            "jog_ur",
+            "jog_dl",
+            "jog_dr",
+            "jog_cancel",
+        ]
         for button in button_list:
             try:
                 self.buttons[button] = builder.get_object(button)
             except BaseException:
                 logger.warning("Button not defined: %s", button)
         self.objects = {}
-        other_objects = ["spinbox_power_level",
-                         "dist_box",
-                         "speed_box",
-                        ]
+        other_objects = [
+            "spinbox_power_level",
+            "dist_box",
+            "speed_box",
+        ]
         for obj in other_objects:
             try:
                 self.objects[obj] = builder.get_object(obj)
@@ -155,10 +162,10 @@ class MainWindow(Sender):
 
     def _relay_states(self):
         """Update the variables of the relay states"""
-        self.var["laser_label"].set(relay_state(OUT_PINS['laser']))
+        self.var["laser_label"].set(relay_state(OUT_PINS["laser"]))
 
     def _switch_laser(self):
-        self._switch_pin('laser')
+        self._switch_pin("laser")
         self._relay_states()
 
     def _switch_pin(self, item):
@@ -171,7 +178,7 @@ class MainWindow(Sender):
             except BaseException as ex:
                 messagebox.showerror("GPIO Error:", ex)
             if BOARD_SETUP:
-                _ = disable_relay(OUT_PINS['laser'])
+                _ = disable_relay(OUT_PINS["laser"])
             else:
                 messagebox.showerror("Failed", "Board not setup")
         logger.debug("Changing pin for %s", item)
@@ -183,19 +190,15 @@ class MainWindow(Sender):
 
     def _select_filepath(self):
         """Use tkfiledialog to select the appropriate file"""
-        valid_files = [("GCODE", ("*.gc",
-                                  "*.gcode",
-                                  "*.nc",
-                                  "*.cnc",
-                                  "*.ncg",
-                                  "*.txt"),
-                       ),
-                       ("GCODE text", "*.txt"),
-                       ("All", "*")
-                      ]
+        valid_files = [
+            ("GCODE", ("*.gc", "*.gcode", "*.nc", "*.cnc", "*.ncg", "*.txt"),),
+            ("GCODE text", "*.txt"),
+            ("All", "*"),
+        ]
         initial_dir = GDIR
-        filepath = filedialog.askopenfilename(filetypes=valid_files,
-                                              initialdir=initial_dir)
+        filepath = filedialog.askopenfilename(
+            filetypes=valid_files, initialdir=initial_dir
+        )
         self._read_file(filepath)
 
     def _read_file(self, filepath):
@@ -233,14 +236,13 @@ class MainWindow(Sender):
         self.var["status"].set(msg)
         if self.error.qsize() > 0:
             response, code, message = self.error.get_nowait()
-            messagebox.showerror("{} {}".format(response, code),
-                                 message)
+            messagebox.showerror("{} {}".format(response, code), message)
         if isinstance(self.pos, tuple):
             self.var["pos_x"].set(self.pos[0])
             self.var["pos_y"].set(self.pos[1])
             self.var["pos_z"].set(self.pos[2])
         if self.max_size != 0:
-            self.var["percent_done"].set(self.progress*100.0)
+            self.var["percent_done"].set(self.progress * 100.0)
         self.mainwindow.after(250, self._update_status)
 
     def _run(self):
@@ -271,8 +273,9 @@ class MainWindow(Sender):
         if self.serial:
             if "box" in direction:
                 power = float(self.objects["spinbox_power_level"].get()) / 100 * 500
-                commands = self.gcodefile.box_gcode(trace=self.var["trace"].get(),
-                                                    strength=power)
+                commands = self.gcodefile.box_gcode(
+                    trace=self.var["trace"].get(), strength=power
+                )
             elif "origin" in direction:
                 commands = ["G21", "G90", "G0X0Y0"]
             else:
@@ -281,7 +284,6 @@ class MainWindow(Sender):
                 self._send_gcode(line)
         else:
             messagebox.showerror("Device", "Please connect first")
-
 
     def _move_ul(self):
         self._move("ul")
@@ -303,7 +305,7 @@ class MainWindow(Sender):
 
     def _move_mc(self):
         """Mark all outer corners of workpiece"""
-        level = float(self.objects["spinbox_power_level"].get())/100 * 500
+        level = float(self.objects["spinbox_power_level"].get()) / 100 * 500
         for corner in ("ul", "ur", "dr", "dl"):
             self._move(corner)
             self._test_fire()
@@ -351,13 +353,14 @@ class MainWindow(Sender):
 
     def _test_fire(self):
         percent = int(self.objects["spinbox_power_level"].get())
-        level = float(percent)/100 * 500
+        level = float(percent) / 100 * 500
         logger.info("Test firing @ %d percent of 500 (S%f)", percent, level)
-        fire_list = ["M3 S{}".format(level),
-                     "G1 Z-1 F600",
-                     "M5",
-                     "G0 Z0",
-                    ]
+        fire_list = [
+            "M3 S{}".format(level),
+            "G1 Z-1 F600",
+            "M5",
+            "G0 Z0",
+        ]
         for command in fire_list:
             self._send_gcode(command)
 
@@ -374,17 +377,19 @@ class MainWindow(Sender):
         self.mainwindow.after(0, self._update_status)
         self.mainwindow.mainloop()
 
+
 ####---- MAIN ----####
 def main():
     """Main function"""
     root = MainWindow()
     root.run()
 
+
 def shutdown():
     """Shutdown commands"""
     logger.debug("shutdown() called")
     try:
-        _ = disable_relay(OUT_PINS['laser'])
+        _ = disable_relay(OUT_PINS["laser"])
     except AttributeError as ex:
         logger.exception("Error shutting down GPIO")
         print("Something went wrong shutting down: {}".format(ex))
@@ -393,6 +398,7 @@ def shutdown():
     if active_count() > 1:
         logger.critical("CANNOT SHUTDOWN PROPERLY")
 
+
 def handler_cli(signum, frame):
     """Signal handler"""
     logger.debug("handler_cli() called")
@@ -400,9 +406,8 @@ def handler_cli(signum, frame):
     _ = frame
     shutdown()
 
-def setup_logging(default_path='logging.yaml',
-                  default_level=logging.INFO
-                 ):
+
+def setup_logging(default_path="logging.yaml", default_level=logging.INFO):
     """Setup logging configuration"""
 
     path = default_path
@@ -415,10 +420,11 @@ def setup_logging(default_path='logging.yaml',
         logging.basicConfig(level=default_level)
         coloredlogs.install(level=default_level)
 
+
 ####---- BODY ----####
 setup_logging()
-logger = logging.getLogger(__name__) # pylint: disable=invalid-name
-if __name__ == '__main__':
+logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
+if __name__ == "__main__":
     signal.signal(signal.SIGHUP, handler_cli)
     signal.signal(signal.SIGINT, handler_cli)
     signal.signal(signal.SIGTERM, handler_cli)
