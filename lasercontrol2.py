@@ -2,7 +2,7 @@
 # coding=UTF-8
 
 """
-This script allows for a user to control the laser and PSU.
+This script allows for a user to control the laser.
 
 This script will grab the UID from an NFC tag, verify that the UID is granted
 access to the laser, then let the user actually do so.
@@ -83,9 +83,7 @@ class MainWindow(Sender):
         self.file = []
         self.gcodefile = None
         self.var = {}
-        variable_list = ["status",
-                         "connect_b",
-                         "psu_label",
+        variable_list = ["connect_b",
                          "laser_label",
                          "filename",
                          "file_found",
@@ -103,7 +101,6 @@ class MainWindow(Sender):
                 self.var[var] = builder.get_variable(var)
             except BaseException:
                 logger.warning("Variable not defined: %s", var)
-        self.var["status"].set("Not Authorized")
         self.var["connect_b"].set("Connect")
         self.buttons = {}
         button_list = ["button_conn",
@@ -111,7 +108,6 @@ class MainWindow(Sender):
                        "button_soft_reset",
                        "button_unlock",
                        "button_reset_hard",
-                       "check_psu",
                        "check_laser",
                        "button_start",
                        "button_pause",
@@ -157,98 +153,16 @@ class MainWindow(Sender):
         # All done
         logger.info("Window started")
 
-#    def _authorize(self):
-#        """Authorize the user, allowing them to do other functions"""
-#        firmware, name = initialize_nfc_reader()
-#        if not firmware and not name:
-#            messagebox.showerror("Unable to Authorize",
-#                                 "The PN532 was unable to initialize")
-#        retry = 3
-#        while retry:
-#            uid = get_uid_noblock()
-#            if not uid:
-#                # True/False are 1/0, so it works
-#                again = messagebox.askretrycancel("No UID found",
-#                                                  ("Could not find NFC tag."
-#                                                   "Try again?"))
-#                if again:
-#                    retry -= 1
-#                else:
-#                    return
-#            else:
-#                retry = 0
-#        if uid:
-#            verified = verify_uid(uid)
-#            if not verified:
-#                messagebox.showerror("Not Authorized",
-#                                     ("You do not have authorization to "
-#                                      "use this device."))
-#            try:
-#                username = get_user_uid(uid)
-#                realname = get_user_realname()
-#            except BaseException as ex:
-#                messagebox.showerror("Error:", ex)
-#            current_user = is_current_user(username)
-#            if not current_user:
-#                messagebox.showerror("Incorrect user",
-#                                     ("The provided NFC tag is not for the "
-#                                      "current user."))
-#            if current_user and uid and verified:
-#                try:
-#                    board_setup = gpio_setup()
-#                except BaseException as ex:
-#                    messagebox.showerror("GPIO Error:", ex)
-#                if board_setup:
-#                    _ = disable_relay(OUT_PINS['laser'])
-#                    _ = disable_relay(OUT_PINS['psu'])
-#                else:
-#                    messagebox.showerror("Failed", "Board not setup")
-#                    return
-#                # Let the buttons actually do something!
-#                self._activate_buttons()
-#                self._relay_states()
-#                logger.info("user %s authorized", username)
-#                self.var["status"].set("Authorized, not connected")
-#                messagebox.showinfo("Done",
-#                                    "Everything is setup, {}".format(realname))
-#            else:
-#                messagebox.showerror("Error", "Something went wrong")
-#
-#    def _activate_buttons(self):
-#        """Enable the buttons"""
-#        for button in self.buttons.iterkeys():
-#            logger.debug("Enabling %s", button)
-#            try:
-#                self.buttons[button].state(["!disabled"])
-#            except ValueError:
-#                logger.exception("Failed to enable %s", button)
-#        logger.info("Buttons enabled")
-
-#    def _deactivate_buttons(self):
-#        """Enable the buttons"""
-#        for button in self.buttons.iterkeys():
-#            logger.debug("Disabling %s", button)
-#            try:
-#                self.buttons[button].state(["disabled"])
-#            except ValueError:
-#                logger.exception("Failed to disable %s", button)
-#        logger.info("Buttons disabled")
-
     def _relay_states(self):
         """Update the variables of the relay states"""
         self.var["laser_label"].set(relay_state(OUT_PINS['laser']))
-        self.var["psu_label"].set(relay_state(OUT_PINS['psu']))
-
-    def _switch_psu(self):
-        self._switch_pin('psu')
-        self._relay_states()
 
     def _switch_laser(self):
         self._switch_pin('laser')
         self._relay_states()
 
     def _switch_pin(self, item):
-        """Change pin state & set laser/psu StringVar's"""
+        """Change pin state & set laser StringVar's"""
         global BOARD_SETUP
         if not BOARD_SETUP:
             logger.debug("Setting up GPIO controls")
@@ -258,7 +172,6 @@ class MainWindow(Sender):
                 messagebox.showerror("GPIO Error:", ex)
             if BOARD_SETUP:
                 _ = disable_relay(OUT_PINS['laser'])
-                _ = disable_relay(OUT_PINS['psu'])
             else:
                 messagebox.showerror("Failed", "Board not setup")
         logger.debug("Changing pin for %s", item)
@@ -449,9 +362,7 @@ class MainWindow(Sender):
             self._send_gcode(command)
 
     def __shutdown(self):
-        message = """Are you sure you want to close?
-        Note: Auth will be lost.
-        """
+        message = "Are you sure you want to exit?"
         if messagebox.askokcancel("Quit?", message):
             self.mainwindow.update_idletasks()
             self._close()
@@ -474,7 +385,6 @@ def shutdown():
     logger.debug("shutdown() called")
     try:
         _ = disable_relay(OUT_PINS['laser'])
-        _ = disable_relay(OUT_PINS['psu'])
     except AttributeError as ex:
         logger.exception("Error shutting down GPIO")
         print("Something went wrong shutting down: {}".format(ex))

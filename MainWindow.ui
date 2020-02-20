@@ -127,20 +127,6 @@
           <property name="sticky">n</property>
         </layout>
         <child>
-          <object class="ttk.Button" id="button_auth">
-            <property name="command">_authorize</property>
-            <property name="compound">top</property>
-            <property name="state">disabled</property>
-            <property name="text" translatable="yes">Authorize</property>
-            <layout>
-              <property name="column">0</property>
-              <property name="propagate">True</property>
-              <property name="row">0</property>
-              <property name="sticky">w</property>
-            </layout>
-          </object>
-        </child>
-        <child>
           <object class="ttk.Button" id="button_reset_hard">
             <property name="command">_hard_reset</property>
             <property name="state">normal</property>
@@ -154,20 +140,6 @@
           </object>
         </child>
         <child>
-          <object class="ttk.Checkbutton" id="check_psu">
-            <property name="command">_switch_psu</property>
-            <property name="cursor">based_arrow_down</property>
-            <property name="state">normal</property>
-            <property name="text" translatable="yes">Power Supply</property>
-            <layout>
-              <property name="column">0</property>
-              <property name="propagate">True</property>
-              <property name="row">2</property>
-              <property name="sticky">w</property>
-            </layout>
-          </object>
-        </child>
-        <child>
           <object class="ttk.Checkbutton" id="check_laser">
             <property name="command">_switch_laser</property>
             <property name="state">normal</property>
@@ -176,19 +148,6 @@
               <property name="column">0</property>
               <property name="propagate">True</property>
               <property name="row">3</property>
-              <property name="sticky">w</property>
-            </layout>
-          </object>
-        </child>
-        <child>
-          <object class="ttk.Label" id="label_psu">
-            <property name="font">TkFixedFont</property>
-            <property name="textvariable">string:psu_label</property>
-            <property name="width">3</property>
-            <layout>
-              <property name="column">1</property>
-              <property name="propagate">True</property>
-              <property name="row">2</property>
               <property name="sticky">w</property>
             </layout>
           </object>

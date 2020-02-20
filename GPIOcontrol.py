@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__) #pylint: disable=invalid-name
 
 ####---- Variables ----####
 ## Relays and other outputs
-OUT_PINS = dict(laser=20, psu=21, grbl=27)
+OUT_PINS = dict(laser=20, grbl=27)
 ## Sensors and other inputs
 IN_PINS = dict() # None currently
 
