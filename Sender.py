@@ -325,7 +325,7 @@ class Sender(object):
             t_curr = time.time()
             # Poll status if enough time has passed
             if t_curr - t_poll > SERIAL_POLL:
-                self.serial.write("?")
+                self.serial.write(b"?")
                 t_poll = t_curr
             # Get other commands from queue
             try:
