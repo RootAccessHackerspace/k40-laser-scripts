@@ -100,13 +100,15 @@ class GcodeFile(object):
         logger.info("Corner extrema: %s & %s", self.extrema["UL"], self.extrema["DR"])
         return (self.extrema["UL"], self.extrema["DR"])
 
-    def box_gcode(self, trace=0, strength=0):
+    def box_gcode(self, trace=0, strength=0, speed=5000):
         """Return str G0/1 commands to bound gcode file"""
         if (None, None) in list(self.extrema.values()):
             self.bounding_box_coords()
         gcode = ["G90", "G21"]
         if trace:
-            gcode.append("M4F5000S{s}".format(s=strength))
+            gcode.append("M4F{f}S{s}".format(f=speed, s=strength))
+        else:
+            gcode.append("F{f}".format(f=speed))
         logger.info("Using X/Y values of %s/%s", self.extrema["X"], self.extrema["Y"])
         gcode.append(
             "G{t}X{x}Y{y}".format(

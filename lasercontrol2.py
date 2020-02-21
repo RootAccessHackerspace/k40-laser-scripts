@@ -262,9 +262,10 @@ class MainWindow(Sender):
                 self.gcodefile.bounding_box_coords()
         if self.serial:
             if "box" in direction:
-                power = float(self.objects["spinbox_power_level"].get()) / 100 * 500
+                power = float(self.objects["spinbox_power_level"].get()) / 100 * 1000
+                speed = float(self.objects["speed_box"].get())
                 commands = self.gcodefile.box_gcode(
-                    trace=self.var["trace"].get(), strength=power
+                    trace=self.var["trace"].get(), strength=power, speed=speed
                 )
             elif "origin" in direction:
                 commands = ["G21", "G90", "G0X0Y0"]
