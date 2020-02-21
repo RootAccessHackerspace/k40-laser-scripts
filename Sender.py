@@ -368,7 +368,7 @@ class Sender(object):
                                 logger.debug("char_line already empty")
                         else:
                             self.__process_messages(out_temp)
-                self.serial.write(line_block + "\n")
+                self.serial.write(line_block + b"\n")
             else:
                 out_temp = self.serial.readline().strip()
                 if out_temp:
