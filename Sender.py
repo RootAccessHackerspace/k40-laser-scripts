@@ -353,7 +353,7 @@ class Sender(object):
                 ):
                     out_temp = self.serial.readline().strip()
                     if out_temp:
-                        if out_temp.find("ok") >= 0:
+                        if out_temp.find(b"ok") >= 0:
                             gcode_count += 1
                             # The following try-except block seems to be mostly
                             # because sending "$H\n" (aka, homing) to Grbl
@@ -370,7 +370,7 @@ class Sender(object):
             else:
                 out_temp = self.serial.readline().strip()
                 if out_temp:
-                    if out_temp.find("ok") >= 0:
+                    if out_temp.find(b"ok") >= 0:
                         gcode_count += 1
                         try:
                             logger.debug("Removing most recent command")
