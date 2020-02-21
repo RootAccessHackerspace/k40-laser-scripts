@@ -280,6 +280,7 @@ class Sender(object):
 
     def __process_messages(self, message):
         """Master message processing"""
+        message = message.decode("ascii")
         if message.find("<") == 0:
             logger.debug("Status message received: %s", message)
             status_msg = message[1:-1]
