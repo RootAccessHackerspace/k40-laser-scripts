@@ -95,6 +95,7 @@ class MainWindow(Sender):
                 self.var[var] = builder.get_variable(var)
             except BaseException:
                 logger.warning("Variable not defined: %s", var)
+        self.var["status"].set("Not Connected")
         self.var["connect_b"].set("Connect")
         self.buttons = {}
         button_list = [
