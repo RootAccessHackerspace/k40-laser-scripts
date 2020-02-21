@@ -345,8 +345,8 @@ class Sender(object):
                 # Reformat line to be ASCII and remove all spaces, comments
                 # and newline characters. We want each line to be as short as
                 # possible.
-                line = line.encode("ascii", "replace").strip()
                 line_block = re.sub(r"\s|\(.*?\)", "", line).upper()
+                line_block = line_block.encode("ascii", "replace").strip()
                 # Track number of characters in the Grbl buffer
                 char_line.append(len(line_block) + 1)
                 sent_line.append(line_block)
