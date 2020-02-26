@@ -80,7 +80,6 @@ class MainWindow(Sender):
             "connect_b",
             "laser_label",
             "filename",
-            "file_found",
             "pos_x",
             "pos_y",
             "pos_z",
