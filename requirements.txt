@@ -5,6 +5,6 @@ pygcode==0.2.1
 pygubu==0.9.8.1
 pylint==1.7.4
 pyserial==3.4
-PyYAML==3.12
+PyYAML==5.4
 setuptools==5.5.1
 wiringpi==2.44.4
